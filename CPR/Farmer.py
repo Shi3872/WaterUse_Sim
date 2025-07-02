@@ -3,7 +3,7 @@ import numpy as np
 # ---------------------------
 # Parameters
 # ---------------------------
-MAX_FIELDS_DECENTRALIZED = 15
+MAX_FIELDS_DV = 15
 MAX_FIELDS_CENTRALIZED = 180
 YIELD_THRESHOLD_COLLAPSE = 5
 WATER_PER_FIELD = 50.0 # per month
@@ -58,13 +58,13 @@ class Farmer:
         if last_yield == 0:
             self.irrigated_fields = int(max(1, self.irrigated_fields - 1))
         elif last_yield < YIELD_THRESHOLD_COLLAPSE: # low income = take risk
-            self.irrigated_fields = int(min(self.irrigated_fields + 1, MAX_FIELDS_DECENTRALIZED))
+            self.irrigated_fields = int(min(self.irrigated_fields + 1, MAX_FIELDS_DV))
         elif last_satisfaction < 0.8: # income ok, but demand unmet = be cautious
             expected = self.predict_water() * 12
             max_fields = int(expected / WATER_PER_FIELD)
             self.irrigated_fields = int(min(max_fields, self.irrigated_fields))
         else: # demand and income met = +1 if can
-            if self.irrigated_fields < MAX_FIELDS_DECENTRALIZED:
+            if self.irrigated_fields < MAX_FIELDS_DV:
                 self.irrigated_fields += 1
 
     def irrigate(self, available_water): # return received water per month
