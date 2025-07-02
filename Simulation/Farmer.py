@@ -1,3 +1,19 @@
+import numpy as np
+
+# ---------------------------
+# Parameters
+# ---------------------------
+MAX_FIELDS_DECENTRALIZED = 15
+MAX_FIELDS_CENTRALIZED = 180
+YIELD_THRESHOLD_COLLAPSE = 5
+WATER_PER_FIELD = 50.0 # per month
+FISH_INCOME_SCALE = 10
+LARVAE_INFLOW_THRESHOLD = 2000 
+FARMER_INITIAL_BUDGET = 200
+AUTHORITY_INITIAL_BUDGET = 1800
+CONSUMPTION_COST = 20
+IRRIGATION_COST = 5
+
 class Farmer:
     def __init__(self, location, memory_strength, min_income):
         self.location = location
