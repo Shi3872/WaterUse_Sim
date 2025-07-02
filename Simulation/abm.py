@@ -413,6 +413,8 @@ def create_test_inflows(case):
         return np.array([60000.0] * 200)  # stable moderate inflow
     elif case == "2": # centralized collapse
         return np.array([20000.0] * 200)  # consistently low inflow
+    elif case == "3":
+        return np.array([22000.0, 58000.0, 26000.0, 45000.0, 30000.0, 39000.0, 60000.0, 24000.0, 52000.0, 28000.0] * 200)
     else:
         return np.random.uniform(20000, 60000, 200)  # default random inflow
 
@@ -447,13 +449,13 @@ def run_and_collect_metrics(years=100, centralized=False, inflows=None, fishing_
     }
 
 if __name__ == "__main__":
-    inflows = create_test_inflows("1")  # change case here
+    inflows = create_test_inflows("3")  # change case here
 
     #print("\n--- Running Decentralized Simulation WITHOUT Fishing---")
     #decentralized_no_fishing = run_and_collect_metrics(years=10, centralized=False, inflows=inflows, fishing_enabled=False, print_interval=10)
 
     print("\n--- Running Decentralized Simulation WITH Fishing---")
-    decentralized_with_fishing = run_and_collect_metrics(years=100, centralized=False, inflows=inflows, fishing_enabled=True, print_interval=10)
+    decentralized_with_fishing = run_and_collect_metrics(years=50, centralized=False, inflows=inflows, fishing_enabled=True, print_interval=1)
 
     #print("\n=== Fishing Impact on Decentralized Performance ===")
     #keys = ["avg_yield", "avg_catch", "avg_budget", "avg_fish_per_year"]
