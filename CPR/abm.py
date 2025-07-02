@@ -2,6 +2,7 @@ import numpy as np
 from Farmer import Farmer
 from Authority import NationalAuthority
 from Fish import FishPopulation
+from solver import generate_matrix, solve_game, print_matrix
 
 # ---------------------------
 # Parameters
@@ -74,8 +75,53 @@ class Simulation:
                     self.authority.july_memory.pop(0)
             else:
                 for farmer in self.farmers:
+                    farmer.possible_choices = []
                     farmer.predict_water()
-                    farmer.decide_irrigation()
+
+                # --- CPR games ---
+                remaining_water = sum(monthly_inflows)
+                
+                for i in range(len(self.farmers) - 1):
+                    uf = self.farmers[i]
+                    df = self.farmers[i + 1]
+
+                    total_water_for_this_game = remaining_water
+                    s_threshold = int(remaining_water / (12 * WATER_PER_FIELD))
+
+                    payoffs = generate_matrix(n=6, m=1, water_field = WATER_PER_FIELD, total_water= total_water_for_this_game, 
+                                              yield_field=8, cost_per_field= IRRIGATION_COST, consumption_cost= CONSUMPTION_COST, stress_threshold = s_threshold, stressed_yield=3)
+                    print_matrix(payoffs, label_a="UF", label_b="DF")
+                    equilibria = solve_game(payoffs, player_labels=("UF", "DF"))
+
+                    if equilibria:
+                        eq = np.random.choice(equilibria)
+
+                        for idx, e in enumerate(equilibria, 1): # Display all equilibria
+                            print(f"\nEquilibrium {idx}:")
+                            for player, probs in e.items():
+                                strategy_str = ", ".join(f"{j+1}: {p:.2f}" for j, p in enumerate(probs) if p > 0.01)
+                                print(f"  {player} -> {strategy_str}")
+
+                        uf_choice = np.random.choice(range(1, 7), p=eq["UF"])
+                        df_choice = np.random.choice(range(1, 7), p=eq["DF"])
+
+                        uf.possible_choices.append(uf_choice)
+                        df.possible_choices.append(df_choice)
+
+                        uf_water_used = uf_choice * WATER_PER_FIELD * 12
+                        remaining_water = max(0, remaining_water - uf_water_used) # remaining water amount
+
+                for farmer in self.farmers:
+                    if len(farmer.possible_choices) == 1:
+                        farmer.irrigated_fields = farmer.possible_choices[0]
+                    elif len(farmer.possible_choices) == 2:
+                        farmer.irrigated_fields = np.random.choice(farmer.possible_choices)
+                    else:
+                        raise ValueError(f"Farmer {farmer.location} has unexpected number of choices: {len(farmer.possible_choices)}")
+
+                        # farmers make new choice if they haven't already made one
+
+                #----------------------------------------------------------
 
             annual_usage = {f.location: 0.0 for f in self.farmers}
             annual_allocated = {f.location: 0.0 for f in self.farmers}
@@ -107,7 +153,6 @@ class Simulation:
                     for farmer in sorted(self.farmers, key=lambda f: f.location):
                         received = farmer.irrigate(water_remaining)
                         water_remaining -= received
-                        annual_usage[farmer.location] += received
                     monthly_runoff = max(0, water_remaining)
                     total_runoff += monthly_runoff
 
