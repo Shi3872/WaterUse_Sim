@@ -26,7 +26,7 @@ class WaterResource:
         self.index = 0 # keep track of year sim is currently on
 
     def next_year_inflow(self): # called once per year to get monthly inflow values
-        if self.index < len(self.inflow_series):
+        if self.index < len(self.inflow_series): # if theres inflow values left (length of list not exceeded).
             annual_inflow = self.inflow_series[self.index]
             self.index += 1
             monthly_inflows = np.full(12, annual_inflow / 12.0) #divide annual inflow across 12 months
@@ -61,9 +61,6 @@ class Simulation:
 
             for farmer in self.farmers:
                 farmer.monthly_water_received = []
-                farmer.july_memory.append(july_inflow)
-                if len(farmer.july_memory) > 10:
-                    farmer.july_memory.pop(0)
 
             if year % self.print_interval == 0:
                 print(f"\nYear {year + 1} | Total Inflow: {sum(monthly_inflows):.2f}")
@@ -88,22 +85,33 @@ class Simulation:
                     total_water_for_this_game = remaining_water
                     s_threshold = int(remaining_water / (12 * WATER_PER_FIELD))
 
-                    payoffs = generate_matrix(n=6, m=1, water_field = WATER_PER_FIELD, total_water= total_water_for_this_game, 
-                                              yield_field=8, cost_per_field= IRRIGATION_COST, consumption_cost= CONSUMPTION_COST, stress_threshold = s_threshold, stressed_yield=3)
-                    print_matrix(payoffs, label_a="UF", label_b="DF")
+                    uf_fish_income = FISH_INCOME_SCALE * (np.mean(uf.catch_history[-3:]) if len(uf.catch_history) >= 3 else (uf.catch_history[-1] if uf.catch_history else 0))
+                    df_fish_income = FISH_INCOME_SCALE * (np.mean(df.catch_history[-3:]) if len(df.catch_history) >= 3 else (df.catch_history[-1] if df.catch_history else 0))
+
+                    payoffs = generate_matrix(
+                        n=12,
+                        m=1,
+                        water_field=WATER_PER_FIELD,
+                        total_water=total_water_for_this_game,
+                        yield_field=8,
+                        cost_per_field=IRRIGATION_COST,
+                        consumption_cost=CONSUMPTION_COST,
+                        stress_threshold=s_threshold,
+                        stressed_yield=3,
+                        uf_budget=uf.budget,
+                        df_budget=df.budget,
+                        uf_fish_income=uf_fish_income,
+                        df_fish_income=df_fish_income
+                    )
+
+                    #print_matrix(payoffs, label_a="UF", label_b="DF")
                     equilibria = solve_game(payoffs, player_labels=("UF", "DF"))
 
                     if equilibria:
                         eq = np.random.choice(equilibria)
 
-                        for idx, e in enumerate(equilibria, 1): # Display all equilibria
-                            print(f"\nEquilibrium {idx}:")
-                            for player, probs in e.items():
-                                strategy_str = ", ".join(f"{j+1}: {p:.2f}" for j, p in enumerate(probs) if p > 0.01)
-                                print(f"  {player} -> {strategy_str}")
-
-                        uf_choice = np.random.choice(range(1, 7), p=eq["UF"])
-                        df_choice = np.random.choice(range(1, 7), p=eq["DF"])
+                        uf_choice = np.random.choice(range(1, 13), p=eq["UF"])
+                        df_choice = np.random.choice(range(1, 13), p=eq["DF"])
 
                         uf.possible_choices.append(uf_choice)
                         df.possible_choices.append(df_choice)
@@ -118,8 +126,6 @@ class Simulation:
                         farmer.irrigated_fields = np.random.choice(farmer.possible_choices)
                     else:
                         raise ValueError(f"Farmer {farmer.location} has unexpected number of choices: {len(farmer.possible_choices)}")
-
-                        # farmers make new choice if they haven't already made one
 
                 #----------------------------------------------------------
 
@@ -156,6 +162,12 @@ class Simulation:
                     monthly_runoff = max(0, water_remaining)
                     total_runoff += monthly_runoff
 
+            for farmer in self.farmers:
+                if len(farmer.monthly_water_received) >= 7:  # how much each farmer receives in july
+                    farmer.july_memory.append(farmer.monthly_water_received[6])
+                    if len(farmer.july_memory) > 10: # if memory too long, pop 
+                        farmer.july_memory.pop(0)
+                        
             lake += total_runoff * runoff_factor
 
             if self.centralized:
@@ -166,7 +178,7 @@ class Simulation:
                 if year % self.print_interval == 0:
                     print(f"Per farmer: total water used = {used:.2f}, allocated = {allocated:.2f}, remaining inflow: {total_runoff:.2f}")
 
-            may_inflow = monthly_inflows[3]
+            may_inflow = monthly_inflows[4]
             self.fish.grow(lake_water=lake, may_inflow=may_inflow)
 
             total_fish = sum(self.fish.age_classes)
@@ -213,11 +225,11 @@ class Simulation:
 
 def create_test_inflows(case):
     if case == "1": # ideal for centralized
-        return np.array([60000.0] * 200)  # stable moderate inflow
+        return np.array([70000.0] * 200)  # stable moderate inflow
     elif case == "2": # centralized collapse
         return np.array([20000.0] * 200)  # consistently low inflow
     elif case == "3":
-        return np.array([22000.0, 58000.0, 26000.0, 45000.0, 30000.0, 39000.0, 60000.0, 24000.0, 52000.0, 28000.0] * 200)
+        return np.array([32000.0, 58000.0, 36000.0, 55000.0, 30000.0, 49000.0, 70000.0, 24000.0, 62000.0, 38000.0] * 200)
     else:
         return np.random.uniform(20000, 60000, 200)  # default random inflow
 
@@ -258,7 +270,7 @@ if __name__ == "__main__":
     #decentralized_no_fishing = run_and_collect_metrics(years=10, centralized=False, inflows=inflows, fishing_enabled=False, print_interval=10)
 
     print("\n--- Running Decentralized Simulation WITH Fishing---")
-    decentralized_with_fishing = run_and_collect_metrics(years=50, centralized=False, inflows=inflows, fishing_enabled=True, print_interval=1)
+    decentralized_with_fishing = run_and_collect_metrics(years=5, centralized=False, inflows=inflows, fishing_enabled=True, print_interval=1)
 
     #print("\n=== Fishing Impact on Decentralized Performance ===")
     #keys = ["avg_yield", "avg_catch", "avg_budget", "avg_fish_per_year"]

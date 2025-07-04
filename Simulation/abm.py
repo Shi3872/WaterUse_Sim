@@ -60,9 +60,6 @@ class Simulation:
 
             for farmer in self.farmers:
                 farmer.monthly_water_received = []
-                farmer.july_memory.append(july_inflow)
-                if len(farmer.july_memory) > 10:
-                    farmer.july_memory.pop(0)
 
             if year % self.print_interval == 0:
                 print(f"\nYear {year + 1} | Total Inflow: {sum(monthly_inflows):.2f}")
@@ -110,6 +107,12 @@ class Simulation:
                         annual_usage[farmer.location] += received
                     monthly_runoff = max(0, water_remaining)
                     total_runoff += monthly_runoff
+
+            for farmer in self.farmers:
+                if len(farmer.monthly_water_received) >= 7:  # how much each farmer receives in july
+                    farmer.july_memory.append(farmer.monthly_water_received[6])
+                    if len(farmer.july_memory) > 10: # if memory too long, pop 
+                        farmer.july_memory.pop(0)
 
             lake += total_runoff * runoff_factor
 
