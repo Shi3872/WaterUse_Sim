@@ -23,10 +23,10 @@ class NationalAuthority:
         self.net_returns = [] # net returns per farmer
         self.july_memory = []
     
-    def predict_water(self):
+    def predict_water(self): # water prediction eq
         if not self.july_memory:
             return self.expected_water
-        weights = np.array([self.memory_strength ** i for i in range(len(self.july_memory))])[::-1]
+        weights = np.array([self.memory_strength ** i for i in range(len(self.july_memory))])[::-1] # list of weights, recent years emphasized
         self.expected_water = np.dot(weights, self.july_memory) / weights.sum()
         return self.expected_water # monthly value
 
@@ -43,7 +43,7 @@ class NationalAuthority:
         prev_total_fields = sum(f.irrigated_fields for f in farmers)
 
         # max change in fields per year is ±1 per farmer
-        max_growth = len(farmers)
+        max_growth = len(farmers) # max groth in total
         max_loss = len(farmers)
 
         if conservative_limit > prev_total_fields:

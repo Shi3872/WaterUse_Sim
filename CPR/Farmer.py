@@ -60,7 +60,7 @@ class Farmer:
         elif last_yield < YIELD_THRESHOLD_COLLAPSE: # low income = take risk
             self.irrigated_fields = int(min(self.irrigated_fields + 1, MAX_FIELDS_DV))
         elif last_satisfaction < 0.8: # income ok, but demand unmet = be cautious
-            expected = self.predict_water() * 12
+            expected = self.predict_water() * 12 # choose: current irrigated fields or max feasible fields given expected water
             max_fields = int(expected / WATER_PER_FIELD)
             self.irrigated_fields = int(min(max_fields, self.irrigated_fields))
         else: # demand and income met = +1 if can
