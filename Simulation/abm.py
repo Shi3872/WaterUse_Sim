@@ -2,6 +2,8 @@ import numpy as np
 from Farmer import Farmer
 from Authority import NationalAuthority
 from Fish import FishPopulation
+import os
+import pickle
 
 # ---------------------------
 # Parameters
@@ -171,11 +173,11 @@ class Simulation:
 
 def create_test_inflows(case):
     if case == "1": # ideal for centralized
-        return np.array([60000.0] * 200)  # stable moderate inflow
+        return np.array([50000.0] * 200)  # stable moderate inflow
     elif case == "2": # centralized collapse
         return np.array([20000.0] * 200)  # consistently low inflow
     elif case == "3":
-        return np.array([22000.0, 58000.0, 26000.0, 45000.0, 30000.0, 39000.0, 60000.0, 24000.0, 52000.0, 28000.0] * 200)
+        return np.array([32000.0, 58000.0, 36000.0, 55000.0, 30000.0, 49000.0, 70000.0, 24000.0, 62000.0, 38000.0] * 200)
     else:
         return np.random.uniform(20000, 60000, 200)  # default random inflow
 
@@ -209,8 +211,30 @@ def run_and_collect_metrics(years=100, centralized=False, inflows=None, fishing_
         "avg_fish_per_year": avg_fish_per_year,
     }
 
+def run_multiple_sims(mode_label, num_runs=5):
+    all_fish, all_yields, all_budgets = [], [], []
+
+    inflows = create_test_inflows("2")
+
+    for _ in range(num_runs):
+        sim = Simulation(years=50,centralized=False,fishing_enabled=True,print_interval=1000)
+        sim.water = WaterResource(inflows)
+        sim.run()
+
+        all_fish.append(sim.annual_fish_totals)
+        yearly_total_yield = np.sum([f.yield_history for f in sim.farmers], axis=0)
+        all_yields.append(yearly_total_yield)
+        all_budgets.append(np.mean(sim.farmer_budget_history, axis=0))
+
+    return {
+        "label": mode_label,
+        "fish": np.array(all_fish),
+        "yield": np.array(all_yields),
+        "budget": np.array(all_budgets)
+    }
+
 if __name__ == "__main__":
-    inflows = create_test_inflows("3")  # change case here
+    inflows = create_test_inflows("2")  # change case here
 
     #print("\n--- Running Decentralized Simulation WITHOUT Fishing---")
     #decentralized_no_fishing = run_and_collect_metrics(years=10, centralized=False, inflows=inflows, fishing_enabled=False, print_interval=10)
@@ -243,3 +267,11 @@ if __name__ == "__main__":
         else:
             print(f"  Decentralized: {d_val:.2f}")
             #print(f"  Centralized  : {c_val:.2f}")
+
+
+    heuristics_data = run_multiple_sims("Heuristics data")
+    os.makedirs("CPR/data", exist_ok=True)  # creates CPR/data/
+
+    with open("CPR/data/heuristics_data.pkl", "wb") as f:
+        pickle.dump(heuristics_data, f)
+        print("Heuristics data saved successfully.")

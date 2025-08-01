@@ -18,8 +18,8 @@ def dv_irrigation(uf_fields, df_fields, water_field, total_water, yield_field, c
     is_stressed = (uf_fields + df_fields) > stress_threshold
     yield_factor = stressed_yield if is_stressed else yield_field
 
-    uf_yield = uf_fields * yield_factor + df_budget + df_fish_income
-    df_yield = df_actual_fields * yield_factor + uf_budget + uf_fish_income
+    uf_yield = uf_fields * yield_factor + uf_fish_income
+    df_yield = df_actual_fields * yield_factor + df_fish_income
 
     uf_cost = uf_fields * cost_per_field + consumption_cost 
     df_cost = df_fields * cost_per_field + consumption_cost 
