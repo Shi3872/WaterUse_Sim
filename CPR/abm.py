@@ -2,7 +2,10 @@ import numpy as np
 from Farmer import Farmer
 from Authority import NationalAuthority
 from Fish import FishPopulation
-from solver import generate_matrix, solve_game, print_matrix
+from solver import generate_matrix, solve_game
+from plots import plot_metrics, plot
+import pickle
+import pandas as pd
 
 # ---------------------------
 # Parameters
@@ -35,9 +38,9 @@ class WaterResource:
 
 
 class Simulation:
-    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1):
+    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, use_static_game=False):
         self.years = years
-        self.farmers = [Farmer(location=i, memory_strength=0, min_income=50) for i in range(9)]
+        self.farmers = [Farmer(location=i, memory_strength=0, min_income=50) for i in range(9)] #delta value
         for f in self.farmers:
             f.fishing_enabled = fishing_enabled
         self.print_interval = print_interval
@@ -50,6 +53,7 @@ class Simulation:
         self.authority_budget_history = []
         self.annual_fish_totals = [] # total fish each year
         self.july_inflows = [] # inflow value for July (index 6)
+        self.use_static_game = use_static_game
 
     def run(self):
         for year in range(self.years):
@@ -82,27 +86,44 @@ class Simulation:
                     uf = self.farmers[i]
                     df = self.farmers[i + 1]
 
+                    if uf.budget <= 0:
+                        uf_choice = 0
+                        uf.possible_choices.append(uf_choice)
+                    if df.budget <= 0:
+                        df_choice = 0
+                        df.possible_choices.append(df_choice)
+
                     total_water_for_this_game = remaining_water
                     s_threshold = int(remaining_water / (12 * WATER_PER_FIELD))
 
                     uf_fish_income = FISH_INCOME_SCALE * (np.mean(uf.catch_history[-3:]) if len(uf.catch_history) >= 3 else (uf.catch_history[-1] if uf.catch_history else 0))
                     df_fish_income = FISH_INCOME_SCALE * (np.mean(df.catch_history[-3:]) if len(df.catch_history) >= 3 else (df.catch_history[-1] if df.catch_history else 0))
 
-                    payoffs = generate_matrix(
-                        n=12,
-                        m=1,
-                        water_field=WATER_PER_FIELD,
-                        total_water=total_water_for_this_game,
-                        yield_field=8,
-                        cost_per_field=IRRIGATION_COST,
-                        consumption_cost=CONSUMPTION_COST,
-                        stress_threshold=s_threshold,
-                        stressed_yield=3,
-                        uf_budget=uf.budget,
-                        df_budget=df.budget,
-                        uf_fish_income=uf_fish_income,
-                        df_fish_income=df_fish_income
-                    )
+                    if self.use_static_game:
+                        payoffs = [
+                            [(6, 6), (5, 7)],
+                            [(9, 3), (5, 2)]
+                        ]
+                        matrix_size = 2
+                        strategy_values = [6, 10]
+                    else:
+                        payoffs = generate_matrix(
+                            n=10,
+                            m=1,
+                            water_field=WATER_PER_FIELD,
+                            total_water=total_water_for_this_game,
+                            yield_field=8,
+                            cost_per_field=IRRIGATION_COST,
+                            consumption_cost=CONSUMPTION_COST,
+                            stress_threshold=s_threshold,
+                            stressed_yield=3,
+                            uf_budget=uf.budget,
+                            df_budget=df.budget,
+                            uf_fish_income=uf_fish_income,
+                            df_fish_income=df_fish_income
+                        )
+                        matrix_size = 10
+                        strategy_values = list(range(1, matrix_size + 1))
 
                     #print_matrix(payoffs, label_a="UF", label_b="DF")
                     equilibria = solve_game(payoffs, player_labels=("UF", "DF"))
@@ -110,11 +131,13 @@ class Simulation:
                     if equilibria:
                         eq = np.random.choice(equilibria)
 
-                        uf_choice = np.random.choice(range(1, 13), p=eq["UF"])
-                        df_choice = np.random.choice(range(1, 13), p=eq["DF"])
+                        if uf.budget > 0:
+                            uf_choice = np.random.choice(strategy_values, p=eq["UF"])
+                            uf.possible_choices.append(uf_choice)
 
-                        uf.possible_choices.append(uf_choice)
-                        df.possible_choices.append(df_choice)
+                        if df.budget > 0:
+                            df_choice = np.random.choice(strategy_values, p=eq["DF"])
+                            df.possible_choices.append(df_choice)
 
                         uf_water_used = uf_choice * WATER_PER_FIELD * 12
                         remaining_water = max(0, remaining_water - uf_water_used) # remaining water amount
@@ -225,18 +248,18 @@ class Simulation:
 
 def create_test_inflows(case):
     if case == "1": # ideal for centralized
-        return np.array([70000.0] * 200)  # stable moderate inflow
+        return np.array([50000.0] * 200)  # stable moderate inflow
     elif case == "2": # centralized collapse
         return np.array([20000.0] * 200)  # consistently low inflow
     elif case == "3":
-        return np.array([32000.0, 58000.0, 36000.0, 55000.0, 30000.0, 49000.0, 70000.0, 24000.0, 62000.0, 38000.0] * 200)
+        return np.array([32000.0, 58000.0, 36000.0, 55000.0, 30000.0, 49000.0, 72000.0, 24000.0, 62000.0, 38000.0] * 200)
     else:
         return np.random.uniform(20000, 60000, 200)  # default random inflow
 
-def run_and_collect_metrics(years=100, centralized=False, inflows=None, fishing_enabled=True, print_interval=1):
+def run(years, centralized, inflows, fishing_enabled, print_interval, use_static_game):
     if inflows is None:
         inflows = np.random.uniform(1000, 3000, years)
-    sim = Simulation(years=years, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=print_interval)
+    sim = Simulation(years=years, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=print_interval, use_static_game=use_static_game)
     sim.water = WaterResource(inflows)
     
     sim.run()
@@ -263,14 +286,30 @@ def run_and_collect_metrics(years=100, centralized=False, inflows=None, fishing_
         "avg_fish_per_year": avg_fish_per_year,
     }
 
+def run_multiple_sims(memory_strength=0, use_static_game=False):
+    results = []
+    inflows = create_test_inflows("3")
+
+    for _ in range(1):
+        sim = Simulation(years=100, centralized=False, fishing_enabled=False, print_interval=1, use_static_game=use_static_game)
+        for f in sim.farmers:
+            f.memory_strength = memory_strength
+        sim.water = WaterResource(inflows)
+        sim.run()
+        yields = [f.yield_history for f in sim.farmers]
+        results.append(np.array(yields).T)
+
+    avg_results = np.mean(results, axis=0)
+    return avg_results
+
 if __name__ == "__main__":
-    inflows = create_test_inflows("3")  # change case here
+    inflows = create_test_inflows("2")  # change case here
 
     #print("\n--- Running Decentralized Simulation WITHOUT Fishing---")
-    #decentralized_no_fishing = run_and_collect_metrics(years=10, centralized=False, inflows=inflows, fishing_enabled=False, print_interval=10)
+    #decentralized_no_fishing = run(years=10, centralized=False, inflows=inflows, fishing_enabled=False, print_interval=10, use_static_game=False)
 
-    print("\n--- Running Decentralized Simulation WITH Fishing---")
-    decentralized_with_fishing = run_and_collect_metrics(years=5, centralized=False, inflows=inflows, fishing_enabled=True, print_interval=1)
+    #print("\n--- Running Decentralized Simulation WITH Fishing---")
+    #decentralized_with_fishing = run(years=5, centralized=False, inflows=inflows, fishing_enabled=True, print_interval=1, use_static_game=False)
 
     #print("\n=== Fishing Impact on Decentralized Performance ===")
     #keys = ["avg_yield", "avg_catch", "avg_budget", "avg_fish_per_year"]
@@ -282,18 +321,36 @@ if __name__ == "__main__":
         #print(f"  With Fishing: {with_fish:.2f}\n")
 
     #print("\n--- Running Centralized Simulation---")
-    #centralized_results = run_and_collect_metrics(years=10, centralized=True, inflows=inflows, print_interval=1)
+    #centralized_results = run(years=10, centralized=True, inflows=inflows, print_interval=1, use_static_game=False)
 
-    print("\n=== Comparison Results ===")
-    keys = ["avg_yield", "avg_catch", "avg_budget", "avg_fish_per_year"]
+    #print("\n=== Comparison Results ===")
+    #keys = ["avg_yield", "avg_catch", "avg_budget", "avg_fish_per_year"]
 
-    for key in keys:
-        d_val = decentralized_with_fishing[key]
+    #for key in keys:
+        #d_val = decentralized_with_fishing[key]
         #c_val = centralized_results[key]
-        print(f"{key.replace('_', ' ').title()}:")
-        if key == "avg_budget":
-            print(f"  Decentralized: {d_val:.2f}")
+        #print(f"{key.replace('_', ' ').title()}:")
+        #if key == "avg_budget":
+            #print(f"  Decentralized: {d_val:.2f}")
             #print(f"  Centralized Budgets: Authority: {c_val['authority']:.2f}, Avg Farmer: {c_val['farmer']:.2f},  Combined per Farmer: {c_val['combined_per_farmer']:.2f}")
-        else:
-            print(f"  Decentralized: {d_val:.2f}")
+        #else:
+            #print(f"  Decentralized: {d_val:.2f}")
             #print(f"  Centralized  : {c_val:.2f}")
+    
+    with open("CPR/data/heuristics_data.pkl", "rb") as f:
+        heuristics_data = pickle.load(f)
+    heuristics_data["label"] = "Heuristics"  # Ensure label exists
+
+    #all_data = [heuristics_data, stylized_data, complex_data]
+
+    results_delta0 = run_multiple_sims(memory_strength=0, use_static_game=False)
+    results_delta1 = run_multiple_sims(memory_strength=1.0, use_static_game=False)
+
+    results = {
+        "decentralized_delta0": results_delta0,
+        "decentralized_delta1": results_delta1
+    }
+
+    plot(results)
+
+    
