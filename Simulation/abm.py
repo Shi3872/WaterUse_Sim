@@ -10,8 +10,8 @@ import pandas as pd
 # ---------------------------
 # Parameters
 # ---------------------------
-MAX_FIELDS_DECENTRALIZED = 15
-MAX_FIELDS_CENTRALIZED = 135
+MAX_FIELDS_DECENTRALIZED = 10
+MAX_FIELDS_CENTRALIZED = 90
 YIELD_THRESHOLD_COLLAPSE = 5
 WATER_PER_FIELD = 50.0 # per month
 FISH_INCOME_SCALE = 10
@@ -221,10 +221,10 @@ def run_and_collect_metrics(years=20, centralized=False, inflows=None, fishing_e
 
 def run_multiple_sims(memory_strength=0, centralized = False):
     results = []
-    inflows = create_test_inflows("")
+    inflows = create_test_inflows("3")
 
     for _ in range(1):
-        sim = Simulation(years=100, centralized=centralized, fishing_enabled=False, print_interval=1)
+        sim = Simulation(years=25, centralized=centralized, fishing_enabled=False, print_interval=1)
         for f in sim.farmers:
             f.memory_strength = memory_strength
         sim.water = WaterResource(inflows)
@@ -281,10 +281,10 @@ if __name__ == "__main__":
     results_celta1 = run_multiple_sims(memory_strength=1.0, centralized=True)
 
     results = {
-        "decentralized_delta0": results_delta0,
-        "decentralized_delta1": results_delta1,
-        "centralized_delta0": results_celta0,
-        "centralized_delta1": results_celta1
+        "Decentralized Delta0": results_delta0,
+        "Decentralized Delta1": results_delta1,
+        "Centralized Delta0": results_celta0,
+        "Centralized Delta1": results_celta1
     }
 
     plot(results)
