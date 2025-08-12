@@ -49,7 +49,7 @@ class Farmer:
         last_satisfaction = self.memory[-1] if self.memory else 1.0
 
         # if in debt and have no income (from yields)
-        if self.budget < -100 and self.yield_history and self.yield_history[-1] == 0:
+        if self.budget < 0:
             self.collapsed = True
             self.irrigated_fields = 0 
             return
