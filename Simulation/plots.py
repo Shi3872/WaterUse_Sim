@@ -14,14 +14,29 @@ metrics = {
     "budget": "Average Farmer Budget"
 }
 
-def plot(results_dict):
+def water_plot(sim_delta0, sim_delta1):
+    years = range(1, len(sim_delta0.july_inflows) + 1)
+
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(10,5))
+    plt.plot(years, sim_delta0.july_inflows, label="RWV (Real July Water)", color="black", linewidth=2)
+    plt.plot(years, sim_delta0.predicted_water_history, label="EWA (δ=0)", linestyle="--", color="red")
+    plt.plot(years, sim_delta1.predicted_water_history, label="EWA (δ=1)", linestyle="--", color="blue")
+    plt.xlabel("Year")
+    plt.ylabel("Water Availability")
+    plt.title("Real vs Predicted July Water Availability")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def box_plot(results_dict):
     fig, axes = plt.subplots(2, 2, figsize=(12, 10), sharey=True)
 
     # Mapping results to panel positions
     plot_order = [
-        ("Centralized Delta0", "a) Centralized\n$\\delta$ = 0", (0, 0)),  # top-left
+        #("Centralized Delta0", "a) Centralized\n$\\delta$ = 0", (0, 0)),  # top-left
         ("Decentralized Delta0", "b) Decentralized\n$\\delta$ = 0", (0, 1)),  # top-right
-        ("Centralized Delta1", "c) Centralized\n$\\delta$ = 1", (1, 0)),  # bottom-left
+        #("Centralized Delta1", "c) Centralized\n$\\delta$ = 1", (1, 0)),  # bottom-left
         ("Decentralized Delta1", "d) Decentralized\n$\\delta$ = 1", (1, 1))  # bottom-right
     ]
 
