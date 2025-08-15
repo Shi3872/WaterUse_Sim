@@ -12,7 +12,6 @@ import pandas as pd
 # ---------------------------
 MAX_FIELDS_DECENTRALIZED = 10
 MAX_FIELDS_CENTRALIZED = 90
-YIELD_DEMAND = 5
 WATER_PER_FIELD = 50.0 # per month
 FISH_INCOME_SCALE = 10
 LARVAE_INFLOW_THRESHOLD = 2000 
@@ -34,7 +33,6 @@ class WaterResource:
             monthly_inflows = np.full(12, annual_inflow / 12.0) #divide annual inflow across 12 months
             return monthly_inflows
         return np.zeros(12) # return an array of 12 values
-
 
 class Simulation:
     def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, memory_strength=0):
@@ -59,8 +57,13 @@ class Simulation:
             monthly_inflows = self.water.next_year_inflow()
             july_inflow = monthly_inflows[6]
 
-            if self.centralized and self.authority and year > 0:
-                self.authority.allocate_fields(self.farmers)
+           # predict water before this year's inflow is known 
+            if self.centralized and self.authority:
+                predicted = self.authority.predict_water()
+                self.predicted_water_history.append(predicted)
+
+                if year > 0:
+                    self.authority.allocate_fields(self.farmers)
 
             for farmer in self.farmers:
                 farmer.monthly_water_received = []
@@ -69,15 +72,7 @@ class Simulation:
                 print(f"\nYear {year + 1} | Total Inflow: {sum(monthly_inflows):.2f}")
                 lake = 0
 
-            if self.centralized and self.authority:
-                self.authority.july_memory.append(july_inflow)
-                if len(self.authority.july_memory) > 10:
-                    self.authority.july_memory.pop(0)
-
-                # Record predicted water for this year
-                predicted = self.authority.predict_water()
-                self.predicted_water_history.append(predicted)
-            else:
+            if not self.centralized:
                 for farmer in self.farmers:
                     farmer.predict_water()
                     farmer.decide_irrigation()
@@ -85,8 +80,9 @@ class Simulation:
             annual_usage = {f.location: 0.0 for f in self.farmers}
             annual_allocated = {f.location: 0.0 for f in self.farmers}
             runoff_factor = 1
-
             total_runoff = 0
+
+            # allcoate water month by month
             for month, inflow in enumerate(monthly_inflows):
                 if self.centralized:
                     total_fields = sum(f.irrigated_fields for f in self.farmers)
@@ -115,6 +111,12 @@ class Simulation:
                         annual_usage[farmer.location] += received
                     monthly_runoff = max(0, water_remaining)
                     total_runoff += monthly_runoff
+
+            # after allocation, record this year's inflow
+            if self.centralized and self.authority:
+                self.authority.july_memory.append(july_inflow)
+                if len(self.authority.july_memory) > 10:
+                    self.authority.july_memory.pop(0)
 
             for farmer in self.farmers:
                 if len(farmer.monthly_water_received) >= 7:  # how much each farmer receives in july
