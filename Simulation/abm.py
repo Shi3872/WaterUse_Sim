@@ -4,7 +4,7 @@ from Authority import NationalAuthority
 from Fish import FishPopulation
 import os
 import pickle
-from plots import plot
+from plots import water_plot, box_plot
 import pandas as pd
 
 # ---------------------------
@@ -12,13 +12,13 @@ import pandas as pd
 # ---------------------------
 MAX_FIELDS_DECENTRALIZED = 10
 MAX_FIELDS_CENTRALIZED = 90
-YIELD_THRESHOLD_COLLAPSE = 5
+YIELD_DEMAND = 5
 WATER_PER_FIELD = 50.0 # per month
 FISH_INCOME_SCALE = 10
 LARVAE_INFLOW_THRESHOLD = 2000 
 AUTHORITY_INITIAL_BUDGET = 1800
-CONSUMPTION_COST = 20
-IRRIGATION_COST = 5
+CONSUMPTION_COST = 15 # annual
+IRRIGATION_COST =5
 
 # ---------------------------
 
@@ -37,14 +37,14 @@ class WaterResource:
 
 
 class Simulation:
-    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1):
+    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, memory_strength=0):
         self.years = years
-        self.farmers = [Farmer(location=i, memory_strength=1, min_income=50) for i in range(9)]
+        self.farmers = [Farmer(location=i, memory_strength=1, min_income=30) for i in range(9)]
         for f in self.farmers:
             f.fishing_enabled = fishing_enabled
         self.print_interval = print_interval
         self.centralized = centralized
-        self.authority = NationalAuthority(memory_strength=0) if centralized else None
+        self.authority = NationalAuthority(memory_strength=memory_strength) if centralized else None
         self.fish = FishPopulation()
         self.water = WaterResource(np.random.uniform(100, 250, years))
         self.fishing_enabled = fishing_enabled
@@ -52,6 +52,7 @@ class Simulation:
         self.authority_budget_history = []
         self.annual_fish_totals = [] # total fish each year
         self.july_inflows = [] # inflow value for July (index 6)
+        self.predicted_water_history = []
 
     def run(self):
         for year in range(self.years):
@@ -72,6 +73,10 @@ class Simulation:
                 self.authority.july_memory.append(july_inflow)
                 if len(self.authority.july_memory) > 10:
                     self.authority.july_memory.pop(0)
+
+                # Record predicted water for this year
+                predicted = self.authority.predict_water()
+                self.predicted_water_history.append(predicted)
             else:
                 for farmer in self.farmers:
                     farmer.predict_water()
@@ -179,52 +184,22 @@ def create_test_inflows(case):
         return np.array([12000.0] * 200)  # consistently low inflow
     elif case == "3":
         return np.array([
-        18034.2, 32456.7, 36150.9, 6201.5, 25500.0, 3603.4, 17750.8, 8055.1,
-        25999.9, 35770.0, 24920.0, 6601.7, 11999.8, 13015.3, 12050.7, 28450.0,
-        17850.9, 32620.5, 55940.0, 5800.0, 15800.0, 4470.5, 27680.0, 7890.0,
-        36120.0, 25400.1, 15010.2, 6450.0, 12010.0, 13100.0, 41980.0, 48610.9,
-        28100.0, 32510.0, 56050.0, 4990.0, 15600.0, 3550.0, 27400.0, 7950.0,
-        25980.0, 35550.0, 75050.0, 7550.0, 32100.0, 52200.0, 42030.0, 38520.0,
+        38441.4, 29340.4, 19380.8, 29041.0, 36600.0, 33140.8, 26109.6, 21661.2,
+        31198.8, 42920.0, 29900.0, 27120.4, 31197.6, 39683.6, 26468.4, 34140.0,
+        33420.8, 27146.0, 43128.0, 30960.0, 30960.0, 29366.0, 33210.0, 45460.0,
+        38540.0, 30481.2, 18012.4, 31740.0, 26412.0, 27720.0, 38376.0, 46333.8,
+        33700.0, 39010.0, 31260.0, 29880.0, 18200.0, 28600.0, 32800.0, 45500.0,
+        31170.0, 42660.0, 30060.0, 33060.0, 38520.0, 38640.0, 14360.0, 34220.0,
     ]* 100)
     else:
         return np.random.uniform(5000, 40000, 200)  # default random inflow
 
-def run_and_collect_metrics(years=20, centralized=False, inflows=None, fishing_enabled=True, print_interval=1):
-    if inflows is None:
-        inflows = np.random.uniform(1000, 3000, years)
-    sim = Simulation(years=years, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=print_interval)
-    sim.water = WaterResource(inflows)
-    
-    sim.run()
-    avg_yield = np.mean([np.mean(f.yield_history) for f in sim.farmers])
-    avg_catch = np.mean([np.mean(f.catch_history) for f in sim.farmers])
-    avg_fish_per_year = np.mean(sim.annual_fish_totals) if sim.annual_fish_totals else 0
-
-    if centralized:
-        avg_farmer_budget = np.mean([np.mean(b) for b in sim.farmer_budget_history]) if sim.farmer_budget_history else 0
-        avg_authority_budget = np.mean(sim.authority_budget_history) if sim.authority_budget_history else 0
-        avg_budget = {
-            "farmer": avg_farmer_budget,
-            "authority": avg_authority_budget,
-            "combined_per_farmer": (avg_authority_budget / len(sim.farmers) if sim.farmers else 0) + avg_farmer_budget
-        }
-    else:
-        avg_budget = np.mean([np.mean(budget_list) for budget_list in sim.farmer_budget_history]) if sim.farmer_budget_history else 0
-
-    return {
-        "mode": "centralized" if centralized else "decentralized",
-        "avg_yield": avg_yield,
-        "avg_catch": avg_catch,
-        "avg_budget": avg_budget,
-        "avg_fish_per_year": avg_fish_per_year,
-    }
-
-def run_multiple_sims(memory_strength=0, centralized = False):
+def run_multiple_sims(memory_strength=0, centralized = False, return_sim = False):
     results = []
     inflows = create_test_inflows("3")
 
     for _ in range(1):
-        sim = Simulation(years=25, centralized=centralized, fishing_enabled=False, print_interval=1)
+        sim = Simulation(years=100, centralized=centralized, fishing_enabled=False, print_interval=1, memory_strength=memory_strength)
         for f in sim.farmers:
             f.memory_strength = memory_strength
         sim.water = WaterResource(inflows)
@@ -232,6 +207,9 @@ def run_multiple_sims(memory_strength=0, centralized = False):
         yields = [f.yield_history for f in sim.farmers]
         results.append(np.array(yields).T)
 
+    if return_sim:
+        return sim
+    
     avg_results = np.mean(results, axis=0)
     return avg_results
     
@@ -239,52 +217,22 @@ def run_multiple_sims(memory_strength=0, centralized = False):
 if __name__ == "__main__":
     inflows = create_test_inflows("1")  # change case here
 
-    #print("\n--- Running Decentralized Simulation WITHOUT Fishing---")
-    #decentralized_no_fishing = run_and_collect_metrics(years=10, centralized=False, inflows=inflows, fishing_enabled=False, print_interval=10)
+    sim_delta0 = run_multiple_sims(memory_strength=0, centralized=True, return_sim=True)
+    sim_delta1 = run_multiple_sims(memory_strength=1, centralized=True, return_sim=True)
 
-    #print("\n--- Running Decentralized Simulation WITH Fishing---")
-    #decentralized_with_fishing = run_and_collect_metrics(years=50, centralized=False, inflows=inflows, fishing_enabled=True, print_interval=1)
-
-    #print("\n=== Fishing Impact on Decentralized Performance ===")
-    #keys = ["avg_yield", "avg_catch", "avg_budget", "avg_fish_per_year"]
-    #for key in keys:
-        #no_fish = decentralized_no_fishing[key]
-        #with_fish = decentralized_with_fishing[key]
-        #print(f"{key.replace('_', ' ').title()}:")
-        #print(f"  No Fishing : {no_fish:.2f}")
-        #print(f"  With Fishing: {with_fish:.2f}\n")
-
-    #print("\n--- Running Centralized Simulation---")
-    #centralized_results = run_and_collect_metrics(years=10, centralized=True, inflows=inflows, print_interval=1)
-
-    #print("\n=== Comparison Results ===")
-    #keys = ["avg_yield", "avg_catch", "avg_budget", "avg_fish_per_year"]
-
-    #for key in keys:
-        #d_val = decentralized_with_fishing[key]
-        #c_val = centralized_results[key]
-        #print(f"{key.replace('_', ' ').title()}:")
-        #if key == "avg_budget":
-            #print(f"  Decentralized: {d_val:.2f}")
-            #print(f"  Centralized Budgets: Authority: {c_val['authority']:.2f}, Avg Farmer: {c_val['farmer']:.2f},  Combined per Farmer: {c_val['combined_per_farmer']:.2f}")
-        #else:
-            #print(f"  Decentralized: {d_val:.2f}")
-            #print(f"  Centralized  : {c_val:.2f}")
-
-
-    #heuristics_data = run_multiple_sims("Heuristics data")
-    #os.makedirs("CPR/data", exist_ok=True)  # creates CPR/data/
+    water_plot(sim_delta0, sim_delta1)
+    
 
     results_delta0 = run_multiple_sims(memory_strength=0)
     results_delta1 = run_multiple_sims(memory_strength=1.0)
-    results_celta0 = run_multiple_sims(memory_strength=0, centralized=True)
-    results_celta1 = run_multiple_sims(memory_strength=1.0, centralized=True)
+    #results_celta0 = run_multiple_sims(memory_strength=0, centralized=True)
+    #results_celta1 = run_multiple_sims(memory_strength=1.0, centralized=True)
 
     results = {
         "Decentralized Delta0": results_delta0,
         "Decentralized Delta1": results_delta1,
-        "Centralized Delta0": results_celta0,
-        "Centralized Delta1": results_celta1
+        #"Centralized Delta0": results_celta0,
+        #"Centralized Delta1": results_celta1
     }
 
-    plot(results)
+    box_plot(results)
