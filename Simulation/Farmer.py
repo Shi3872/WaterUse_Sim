@@ -3,22 +3,19 @@ import numpy as np
 # ---------------------------
 # Parameters
 # ---------------------------
-MAX_FIELDS_DECENTRALIZED = 15
-MAX_FIELDS_CENTRALIZED = 180
-YIELD_THRESHOLD_COLLAPSE = 5
+MAX_FIELDS_DECENTRALIZED = 10
+DEMAND_THRESHOLD = 0.9
 WATER_PER_FIELD = 50.0 # per month
 FISH_INCOME_SCALE = 10
-LARVAE_INFLOW_THRESHOLD = 2000 
-FARMER_INITIAL_BUDGET = 200
-AUTHORITY_INITIAL_BUDGET = 1800
+FARMER_INITIAL_BUDGET = 350
 CONSUMPTION_COST = 20
-IRRIGATION_COST = 5
+IRRIGATION_COST = 6
 
 class Farmer:
     def __init__(self, location, memory_strength, min_income):
         self.location = location
-        self.irrigated_fields = 3
-        self.expected_water = 40000
+        self.irrigated_fields = 10
+        self.expected_water = 250 # per farmer per month
         self.memory = []
         self.memory_strength = memory_strength
         self.yield_history = []
@@ -36,36 +33,43 @@ class Farmer:
     def predict_water(self): # water prediction equation (eq1)
         if not self.july_memory:
             return self.expected_water
+        if self.memory_strength == 0:
+            if self.july_memory:
+                return self.july_memory[-1]  # use last July's actual received value
         weights = np.array([self.memory_strength ** i for i in range(len(self.july_memory))])[::-1]
         self.expected_water = np.dot(weights, self.july_memory) / weights.sum()
+
         return self.expected_water # monthly value
 
     def decide_irrigation(self):
-        if getattr(self, "collapsed", False):
+        if self.collapsed:
             return
         if not self.yield_history:
             return
-        last_yield = self.yield_history[-1]
-        last_satisfaction = self.memory[-1] if self.memory else 1.0
 
-        # if in debt and have no income (from yields)
-        if self.budget < -100 and self.yield_history and self.yield_history[-1] == 0:
-            self.collapsed = True
-            self.irrigated_fields = 0 
-            return
+        # constraints
+        expected_annual_water = self.predict_water() * 12 # expected water
+        max_water_fields = int(expected_annual_water / (WATER_PER_FIELD * 12)) # water availability
+        max_affordable_fields = int((self.budget // IRRIGATION_COST) - CONSUMPTION_COST)
+        
+        print(f' expected annual water {expected_annual_water}')
 
-        # decide number of fields based on income and demand
-        if last_yield == 0:
-            self.irrigated_fields = int(max(1, self.irrigated_fields - 1))
-        elif last_yield < YIELD_THRESHOLD_COLLAPSE: # low income = take risk
-            self.irrigated_fields = int(min(self.irrigated_fields + 1, MAX_FIELDS_DECENTRALIZED))
-        elif last_satisfaction < 0.8: # income ok, but demand unmet = be cautious
-            expected = self.predict_water() * 12
-            max_fields = int(expected / WATER_PER_FIELD)
-            self.irrigated_fields = int(min(max_fields, self.irrigated_fields))
-        else: # demand and income met = +1 if can
-            if self.irrigated_fields < MAX_FIELDS_DECENTRALIZED:
-                self.irrigated_fields += 1
+        max_possible = min(max_water_fields, max_affordable_fields, MAX_FIELDS_DECENTRALIZED)
+        
+        last_yield = self.yield_history[-1] if self.yield_history else 0.0 
+        last_satisfaction = self.memory[-1] if self.memory else 0.0 
+
+        # Rule 1: Below minimum income → increase fields
+        if last_yield < self.min_income:
+            self.irrigated_fields = min(self.irrigated_fields + 1, max_possible)
+
+        # Rule 2: Income satisfied but demand not met → keep fields safe for expected water
+        elif last_yield >= self.min_income and last_satisfaction < DEMAND_THRESHOLD:
+            self.irrigated_fields = min(max_water_fields, max_possible)
+
+        # Rule 3: Otherwise → full use of constraints
+        else:
+            self.irrigated_fields = max_possible
 
     def irrigate(self, available_water): # return received water per month
         if self.collapsed:
@@ -99,8 +103,8 @@ class Farmer:
             self.yield_history.append(0)
             self.catch_history.append(0)
             return 0, 0, 0
+        
         field_yield = self.calculate_crop_stress()
-        yield_factor = field_yield / self.irrigated_fields if self.irrigated_fields > 0 else 0
 
         if centralized: # Farmers keep ONLY fishing income
             net_return = fish_catch * FISH_INCOME_SCALE # net return per farmer
@@ -115,7 +119,7 @@ class Farmer:
             authority_consumption_cost = 0
 
         self.budget += net_return
-        self.yield_history.append(yield_factor)
+        self.yield_history.append(field_yield) # total yield (not per field)
         self.catch_history.append(fish_catch)
 
         # Update water satisfaction memory (average over the season)

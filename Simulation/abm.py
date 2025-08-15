@@ -16,8 +16,8 @@ WATER_PER_FIELD = 50.0 # per month
 FISH_INCOME_SCALE = 10
 LARVAE_INFLOW_THRESHOLD = 2000 
 AUTHORITY_INITIAL_BUDGET = 1800
-CONSUMPTION_COST = 15 # annual
-IRRIGATION_COST =5
+CONSUMPTION_COST = 20 # annual
+IRRIGATION_COST =6
 
 # ---------------------------
 
@@ -44,7 +44,7 @@ class Simulation:
         self.centralized = centralized
         self.authority = NationalAuthority(memory_strength=memory_strength) if centralized else None
         self.fish = FishPopulation()
-        self.water = WaterResource(np.random.uniform(100, 250, years))
+        self.water = WaterResource(np.random.uniform(1000, 2500, years))
         self.fishing_enabled = fishing_enabled
         self.farmer_budget_history = [[] for _ in self.farmers]
         self.authority_budget_history = []
@@ -62,8 +62,7 @@ class Simulation:
                 predicted = self.authority.predict_water()
                 self.predicted_water_history.append(predicted)
 
-                if year > 0:
-                    self.authority.allocate_fields(self.farmers)
+                self.authority.allocate_fields(self.farmers)
 
             for farmer in self.farmers:
                 farmer.monthly_water_received = []
@@ -88,13 +87,15 @@ class Simulation:
                     total_fields = sum(f.irrigated_fields for f in self.farmers)
                     monthly_demand = total_fields * WATER_PER_FIELD
 
+                    water_remaining = inflow
                     if monthly_demand > 0:
                         for farmer in self.farmers:
                             demand = farmer.irrigated_fields * WATER_PER_FIELD
-                            alloc = min(inflow * (farmer.irrigated_fields / total_fields), demand)
+                            alloc = min(demand, water_remaining)
                             farmer.receive_water(alloc)
                             annual_usage[farmer.location] += alloc
-                            annual_allocated[farmer.location] += inflow * (farmer.irrigated_fields / total_fields)
+                            annual_allocated[farmer.location] += alloc
+                            water_remaining -= alloc
                     else:
                         for farmer in self.farmers:
                             farmer.receive_water(0)
@@ -219,22 +220,22 @@ def run_multiple_sims(memory_strength=0, centralized = False, return_sim = False
 if __name__ == "__main__":
     inflows = create_test_inflows("1")  # change case here
 
-    sim_delta0 = run_multiple_sims(memory_strength=0, centralized=True, return_sim=True)
-    sim_delta1 = run_multiple_sims(memory_strength=1, centralized=True, return_sim=True)
-
-    water_plot(sim_delta0, sim_delta1)
+    # water plot
+    #sim_delta0 = run_multiple_sims(memory_strength=0, centralized=True, return_sim=True)
+    #sim_delta1 = run_multiple_sims(memory_strength=1, centralized=True, return_sim=True)
+    #water_plot(sim_delta0, sim_delta1)
     
-
+    # box plot
     results_delta0 = run_multiple_sims(memory_strength=0)
     results_delta1 = run_multiple_sims(memory_strength=1.0)
-    #results_celta0 = run_multiple_sims(memory_strength=0, centralized=True)
-    #results_celta1 = run_multiple_sims(memory_strength=1.0, centralized=True)
+    results_celta0 = run_multiple_sims(memory_strength=0, centralized=True)
+    results_celta1 = run_multiple_sims(memory_strength=1.0, centralized=True)
 
     results = {
         "Decentralized Delta0": results_delta0,
         "Decentralized Delta1": results_delta1,
-        #"Centralized Delta0": results_celta0,
-        #"Centralized Delta1": results_celta1
+        "Centralized Delta0": results_celta0,
+        "Centralized Delta1": results_celta1
     }
 
     box_plot(results)
