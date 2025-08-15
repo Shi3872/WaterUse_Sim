@@ -34,9 +34,9 @@ def box_plot(results_dict):
 
     # Mapping results to panel positions
     plot_order = [
-        #("Centralized Delta0", "a) Centralized\n$\\delta$ = 0", (0, 0)),  # top-left
+        ("Centralized Delta0", "a) Centralized\n$\\delta$ = 0", (0, 0)),  # top-left
         ("Decentralized Delta0", "b) Decentralized\n$\\delta$ = 0", (0, 1)),  # top-right
-        #("Centralized Delta1", "c) Centralized\n$\\delta$ = 1", (1, 0)),  # bottom-left
+        ("Centralized Delta1", "c) Centralized\n$\\delta$ = 1", (1, 0)),  # bottom-left
         ("Decentralized Delta1", "d) Decentralized\n$\\delta$ = 1", (1, 1))  # bottom-right
     ]
 
