@@ -50,9 +50,7 @@ class Farmer:
         # constraints
         expected_annual_water = self.predict_water() * 12 # expected water
         max_water_fields = int(expected_annual_water / (WATER_PER_FIELD * 12)) # water availability
-        max_affordable_fields = int((self.budget // IRRIGATION_COST) - CONSUMPTION_COST)
-        
-        print(f' expected annual water {expected_annual_water}')
+        max_affordable_fields = max(0, int(self.budget // IRRIGATION_COST) - CONSUMPTION_COST)
 
         max_possible = min(max_water_fields, max_affordable_fields, MAX_FIELDS_DECENTRALIZED)
         
@@ -69,7 +67,7 @@ class Farmer:
 
         # Rule 3: Otherwise → full use of constraints
         else:
-            self.irrigated_fields = max_possible
+            self.irrigated_fields = max(max_possible, 0)
 
     def irrigate(self, available_water): # return received water per month
         if self.collapsed:

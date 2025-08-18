@@ -31,10 +31,9 @@ class NationalAuthority:
     def decide_total_fields(self, farmers):
         expected_annual_inflow = self.predict_water() * 12
 
-        # cconstraints
+        # constraints
         max_water_fields = int(expected_annual_inflow / (WATER_PER_FIELD * 12))
         max_affordable_fields = int((self.budget // (IRRIGATION_COST)) - CONSUMPTION_COST)
-        
         
         max_possible = min(max_water_fields, max_affordable_fields, MAX_FIELDS_CENTRALIZED)
 

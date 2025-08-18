@@ -2,10 +2,6 @@ import numpy as np
 from Farmer import Farmer
 from Authority import NationalAuthority
 from Fish import FishPopulation
-import os
-import pickle
-from plots import water_plot, box_plot
-import pandas as pd
 
 # ---------------------------
 # Parameters
@@ -51,6 +47,7 @@ class Simulation:
         self.annual_fish_totals = [] # total fish each year
         self.july_inflows = [] # inflow value for July (index 6)
         self.predicted_water_history = []
+        self.fish_history = []
 
     def run(self):
         for year in range(self.years):
@@ -144,7 +141,7 @@ class Simulation:
             larvae = self.fish.age_classes[0]
 
             if year % self.print_interval == 0:
-                print(f"Lake Water = {lake:.2f}")
+                #print(f"Lake Water = {lake:.2f}")
                 print(f"Fish Status — Total: {total_fish}, Adults: {adult_fish}, Juveniles: {juvenile_fish}, Larvae: {larvae}")
 
             total_yield = 0
@@ -174,68 +171,12 @@ class Simulation:
 
             for i, f in enumerate(self.farmers):
                 if year % self.print_interval == 0:
-                    print(f"Farmer {i+1}: Fields={f.irrigated_fields}, Budget={f.budget:.2f}, "
-                        f"Last Yield={f.yield_history[-1]:.2f}, Catch={int(f.catch_history[-1])}")
+                    if(i == 8):
+                        print(f"Farmer {i+1}: Fields={f.irrigated_fields}, Budget={f.budget:.2f}, "
+                            f"Last Yield={f.yield_history[-1]:.2f}, Catch={int(f.catch_history[-1])}")
             
             self.annual_fish_totals.append(sum(self.fish.age_classes))
             self.july_inflows.append(self.water.inflow_series[year] / 12.0)  # July inflow assumed uniform
+            self.fish_history.append(list(self.fish.age_classes))
 
-def create_test_inflows(case):
-    if case == "1": # ideal for centralized
-        return np.array([50000.0] * 200)  # stable moderate inflow
-    elif case == "2": # centralized collapse
-        return np.array([12000.0] * 200)  # consistently low inflow
-    elif case == "3":
-        return np.array([
-        38441.4, 29340.4, 19380.8, 29041.0, 36600.0, 33140.8, 26109.6, 21661.2,
-        31198.8, 42920.0, 29900.0, 27120.4, 31197.6, 39683.6, 26468.4, 34140.0,
-        33420.8, 27146.0, 43128.0, 30960.0, 30960.0, 29366.0, 33210.0, 45460.0,
-        38540.0, 30481.2, 18012.4, 31740.0, 26412.0, 27720.0, 38376.0, 46333.8,
-        33700.0, 39010.0, 31260.0, 29880.0, 18200.0, 28600.0, 32800.0, 45500.0,
-        31170.0, 42660.0, 30060.0, 33060.0, 38520.0, 38640.0, 14360.0, 34220.0,
-    ]* 100)
-    else:
-        return np.random.uniform(5000, 40000, 200)  # default random inflow
 
-def run_multiple_sims(memory_strength=0, centralized = False, return_sim = False):
-    results = []
-    inflows = create_test_inflows("3")
-
-    for _ in range(1):
-        sim = Simulation(years=100, centralized=centralized, fishing_enabled=False, print_interval=1, memory_strength=memory_strength)
-        for f in sim.farmers:
-            f.memory_strength = memory_strength
-        sim.water = WaterResource(inflows)
-        sim.run()
-        yields = [f.yield_history for f in sim.farmers]
-        results.append(np.array(yields).T)
-
-    if return_sim:
-        return sim
-    
-    avg_results = np.mean(results, axis=0)
-    return avg_results
-    
-
-if __name__ == "__main__":
-    inflows = create_test_inflows("1")  # change case here
-
-    # water plot
-    #sim_delta0 = run_multiple_sims(memory_strength=0, centralized=True, return_sim=True)
-    #sim_delta1 = run_multiple_sims(memory_strength=1, centralized=True, return_sim=True)
-    #water_plot(sim_delta0, sim_delta1)
-    
-    # box plot
-    results_delta0 = run_multiple_sims(memory_strength=0)
-    results_delta1 = run_multiple_sims(memory_strength=1.0)
-    results_celta0 = run_multiple_sims(memory_strength=0, centralized=True)
-    results_celta1 = run_multiple_sims(memory_strength=1.0, centralized=True)
-
-    results = {
-        "Decentralized Delta0": results_delta0,
-        "Decentralized Delta1": results_delta1,
-        "Centralized Delta0": results_celta0,
-        "Centralized Delta1": results_celta1
-    }
-
-    box_plot(results)
