@@ -6,7 +6,7 @@ import numpy as np
 MAX_FIELDS_DECENTRALIZED = 10
 DEMAND_THRESHOLD = 0.9
 WATER_PER_FIELD = 50.0 # per month
-FISH_INCOME_SCALE = 10
+FISH_INCOME_SCALE = 5
 FARMER_INITIAL_BUDGET = 350
 CONSUMPTION_COST = 20
 IRRIGATION_COST = 6
@@ -25,7 +25,6 @@ class Farmer:
         self.planned_fields = self.irrigated_fields
         self.monthly_water_received = []
         self.july_memory = [] 
-        self.collapsed = False
 
     def receive_water(self, amount):
             self.monthly_water_received.append(amount)
@@ -42,8 +41,6 @@ class Farmer:
         return self.expected_water # monthly value
 
     def decide_irrigation(self):
-        if self.collapsed:
-            return
         if not self.yield_history:
             return
 
@@ -69,10 +66,7 @@ class Farmer:
         else:
             self.irrigated_fields = max(max_possible, 0)
 
-    def irrigate(self, available_water): # return received water per month
-        if self.collapsed:
-            return 0
-        
+    def irrigate(self, available_water): # return received water per month     
         self.planned_fields = self.irrigated_fields  # store for stress calc
         demand = self.irrigated_fields * (WATER_PER_FIELD)
         received = min(available_water, demand)
@@ -80,8 +74,6 @@ class Farmer:
         return received
 
     def calculate_crop_stress(self): # irrigation equation (eq2)
-        if self.collapsed:
-            return 0
         if len(self.monthly_water_received) < 12: # pad with zeros if incomplete
             self.monthly_water_received += [0] * (12 - len(self.monthly_water_received))
 
@@ -96,12 +88,7 @@ class Farmer:
         Y_jt = 10 * self.irrigated_fields * min(1.0, average_stress)
         return Y_jt
 
-    def update_budget_and_yield(self, fish_catch, centralized=False): # budget equation (eq3)
-        if self.collapsed:
-            self.yield_history.append(0)
-            self.catch_history.append(0)
-            return 0, 0, 0
-        
+    def update_budget_and_yield(self, fish_catch, centralized=False): # budget equation (eq3)       
         field_yield = self.calculate_crop_stress()
 
         if centralized: # Farmers keep ONLY fishing income
