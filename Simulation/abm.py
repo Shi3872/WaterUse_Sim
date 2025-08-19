@@ -2,6 +2,7 @@ import numpy as np
 from Farmer import Farmer
 from Authority import NationalAuthority
 from Fish import FishPopulation
+from solver import generate_matrix, solve_game
 
 # ---------------------------
 # Parameters
@@ -31,7 +32,7 @@ class WaterResource:
         return np.zeros(12) # return an array of 12 values
 
 class Simulation:
-    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, memory_strength=0):
+    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, memory_strength=0, use_cpr_game = False, use_static_game = False):
         self.years = years
         self.farmers = [Farmer(location=i, memory_strength=1, min_income=30) for i in range(9)]
         for f in self.farmers:
@@ -48,6 +49,77 @@ class Simulation:
         self.july_inflows = [] # inflow value for July (index 6)
         self.predicted_water_history = []
         self.fish_history = []
+        self.use_cpr_game = use_cpr_game
+        self.use_static_game = use_static_game
+
+    def decentralized_game(self, monthly_inflows):
+        remaining_water = sum(monthly_inflows)
+        for i in range(len(self.farmers) - 1):
+            uf = self.farmers[i]
+            df = self.farmers[i + 1]
+
+            if uf.budget <= 0:
+                uf_choice = 0
+                uf.possible_choices.append(uf_choice)
+            if df.budget <= 0:
+                df_choice = 0
+                df.possible_choices.append(df_choice)
+
+            total_water_for_this_game = remaining_water
+            s_threshold = int(remaining_water / (12 * WATER_PER_FIELD))
+
+            uf_fish_income = FISH_INCOME_SCALE * (np.mean(uf.catch_history[-3:]) if len(uf.catch_history) >= 3 else (uf.catch_history[-1] if uf.catch_history else 0))
+            df_fish_income = FISH_INCOME_SCALE * (np.mean(df.catch_history[-3:]) if len(df.catch_history) >= 3 else (df.catch_history[-1] if df.catch_history else 0))
+
+            if self.use_static_game:
+                payoffs = [
+                    [(6, 6), (5, 7)],
+                    [(9, 3), (5, 2)]
+                ]
+                matrix_size = 2
+                strategy_values = [6, 10]
+            else:
+                payoffs = generate_matrix(
+                    n=10,
+                    m=1,
+                    water_field=WATER_PER_FIELD,
+                    total_water=total_water_for_this_game,
+                    yield_field=8,
+                    cost_per_field=IRRIGATION_COST,
+                    consumption_cost=CONSUMPTION_COST,
+                    stress_threshold=s_threshold,
+                    stressed_yield=3,
+                    uf_budget=uf.budget,
+                    df_budget=df.budget,
+                    uf_fish_income=uf_fish_income,
+                    df_fish_income=df_fish_income
+                )
+                matrix_size = 10
+                strategy_values = list(range(1, matrix_size + 1))
+
+            equilibria = solve_game(payoffs, player_labels=("UF", "DF"))
+
+            if equilibria:
+                eq = np.random.choice(equilibria)
+
+                if uf.budget > 0:
+                    uf_choice = np.random.choice(strategy_values, p=eq["UF"])
+                    uf.possible_choices.append(uf_choice)
+
+                if df.budget > 0:
+                    df_choice = np.random.choice(strategy_values, p=eq["DF"])
+                    df.possible_choices.append(df_choice)
+
+                uf_water_used = uf_choice * WATER_PER_FIELD * 12
+                remaining_water = max(0, remaining_water - uf_water_used)
+
+        for farmer in self.farmers:
+            if len(farmer.possible_choices) == 1:
+                farmer.irrigated_fields = farmer.possible_choices[0]
+            elif len(farmer.possible_choices) == 2:
+                farmer.irrigated_fields = np.random.choice(farmer.possible_choices)
+            else:
+                raise ValueError(f"Farmer {farmer.location} has unexpected number of choices: {len(farmer.possible_choices)}")
 
     def run(self):
         for year in range(self.years):
@@ -58,20 +130,24 @@ class Simulation:
             if self.centralized and self.authority:
                 predicted = self.authority.predict_water()
                 self.predicted_water_history.append(predicted)
-
                 self.authority.allocate_fields(self.farmers)
 
             for farmer in self.farmers:
                 farmer.monthly_water_received = []
+                farmer.possible_choices = []
 
             if year % self.print_interval == 0:
                 print(f"\nYear {year + 1} | Total Inflow: {sum(monthly_inflows):.2f}")
                 lake = 0
 
-            if not self.centralized:
-                for farmer in self.farmers:
-                    farmer.predict_water()
-                    farmer.decide_irrigation()
+            #---------------Decision logic----------------#
+            if not self.centralized: # Decentralized
+                if self.use_cpr_game: # Game logic
+                    self.decentralized_game(monthly_inflows)
+                else: # Heuristic logic
+                    for farmer in self.farmers:
+                        farmer.predict_water()
+                        farmer.decide_irrigation()
 
             annual_usage = {f.location: 0.0 for f in self.farmers}
             annual_allocated = {f.location: 0.0 for f in self.farmers}

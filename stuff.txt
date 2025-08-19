@@ -1,0 +1,72 @@
+def run_and_collect_metrics(years=20, centralized=False, inflows=None, fishing_enabled=True, print_interval=1):
+    if inflows is None:
+        inflows = np.random.uniform(1000, 3000, years)
+    sim = Simulation(years=years, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=print_interval)
+    sim.water = WaterResource(inflows)
+    
+    sim.run()
+    avg_yield = np.mean([np.mean(f.yield_history) for f in sim.farmers])
+    avg_catch = np.mean([np.mean(f.catch_history) for f in sim.farmers])
+    avg_fish_per_year = np.mean(sim.annual_fish_totals) if sim.annual_fish_totals else 0
+
+    if centralized:
+        avg_farmer_budget = np.mean([np.mean(b) for b in sim.farmer_budget_history]) if sim.farmer_budget_history else 0
+        avg_authority_budget = np.mean(sim.authority_budget_history) if sim.authority_budget_history else 0
+        avg_budget = {
+            "farmer": avg_farmer_budget,
+            "authority": avg_authority_budget,
+            "combined_per_farmer": (avg_authority_budget / len(sim.farmers) if sim.farmers else 0) + avg_farmer_budget
+        }
+    else:
+        avg_budget = np.mean([np.mean(budget_list) for budget_list in sim.farmer_budget_history]) if sim.farmer_budget_history else 0
+
+    return {
+        "mode": "centralized" if centralized else "decentralized",
+        "avg_yield": avg_yield,
+        "avg_catch": avg_catch,
+        "avg_budget": avg_budget,
+        "avg_fish_per_year": avg_fish_per_year,
+    }
+
+#print("\n--- Running Decentralized Simulation WITHOUT Fishing---")
+    #decentralized_no_fishing = run_and_collect_metrics(years=10, centralized=False, inflows=inflows, fishing_enabled=False, print_interval=10)
+
+    #print("\n--- Running Decentralized Simulation WITH Fishing---")
+    #decentralized_with_fishing = run_and_collect_metrics(years=50, centralized=False, inflows=inflows, fishing_enabled=True, print_interval=1)
+
+    #print("\n=== Fishing Impact on Decentralized Performance ===")
+    #keys = ["avg_yield", "avg_catch", "avg_budget", "avg_fish_per_year"]
+    #for key in keys:
+        #no_fish = decentralized_no_fishing[key]
+        #with_fish = decentralized_with_fishing[key]
+        #print(f"{key.replace('_', ' ').title()}:")
+        #print(f"  No Fishing : {no_fish:.2f}")
+        #print(f"  With Fishing: {with_fish:.2f}\n")
+
+    #print("\n--- Running Centralized Simulation---")
+    #centralized_results = run_and_collect_metrics(years=10, centralized=True, inflows=inflows, print_interval=1)
+
+    #print("\n=== Comparison Results ===")
+    #keys = ["avg_yield", "avg_catch", "avg_budget", "avg_fish_per_year"]
+
+    #for key in keys:
+        #d_val = decentralized_with_fishing[key]
+        #c_val = centralized_results[key]
+        #print(f"{key.replace('_', ' ').title()}:")
+        #if key == "avg_budget":
+            #print(f"  Decentralized: {d_val:.2f}")
+            #print(f"  Centralized Budgets: Authority: {c_val['authority']:.2f}, Avg Farmer: {c_val['farmer']:.2f},  Combined per Farmer: {c_val['combined_per_farmer']:.2f}")
+        #else:
+            #print(f"  Decentralized: {d_val:.2f}")
+            #print(f"  Centralized  : {c_val:.2f}")
+
+
+    #heuristics_data = run_multiple_sims("Heuristics data")
+    #os.makedirs("CPR/data", exist_ok=True)  # creates CPR/data/
+
+
+
+    results_delta0 = run_multiple_sims(memory_strength=0, use_cpr_game=True, use_static_game=True)
+    results_delta1 = run_multiple_sims(memory_strength=1.0, use_cpr_game=True, use_static_game=True)
+    results_celta0 = run_multiple_sims(memory_strength=0, centralized=True, use_cpr_game=True, use_static_game=True)
+    results_celta1 = run_multiple_sims(memory_strength=1.0, centralized=True, use_cpr_game=True, use_static_game=True)
