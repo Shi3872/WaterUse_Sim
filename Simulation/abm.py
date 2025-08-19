@@ -9,7 +9,7 @@ from Fish import FishPopulation
 MAX_FIELDS_DECENTRALIZED = 10
 MAX_FIELDS_CENTRALIZED = 90
 WATER_PER_FIELD = 50.0 # per month
-FISH_INCOME_SCALE = 10
+FISH_INCOME_SCALE = 5
 LARVAE_INFLOW_THRESHOLD = 2000 
 AUTHORITY_INITIAL_BUDGET = 1800
 CONSUMPTION_COST = 20 # annual
@@ -150,7 +150,7 @@ class Simulation:
 
             for farmer in sorted(self.farmers, key=lambda f: -f.location):
                 if getattr(farmer, 'fishing_enabled', True):
-                    fish_catch = self.fish.harvest(effort=2)
+                    fish_catch = self.fish.harvest(target_catch=20)
                 else:
                     fish_catch = 0
                 y, ci, cc = farmer.update_budget_and_yield(fish_catch=fish_catch, centralized=self.centralized)

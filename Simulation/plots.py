@@ -46,9 +46,10 @@ def fish_plot(deltas,
 
     # Panel (a) – Adults and Catch
     axes[0].plot(deltas, central_adults, "ko-", label="centralized")
-    axes[0].plot(deltas, dec_nf_adults, "k^--", label="decentralized – no fishing")
-    axes[0].plot(deltas, dec_f_adults, "ko--", label="decentralized – fishing")
-    axes[0].plot(deltas, dec_f_catch, "kd:", label="mean total catch")
+    axes[0].plot(deltas, dec_nf_adults, "o--", c="k", mfc="none", label="decentralized – no fishing")
+    axes[0].plot(deltas, dec_f_adults, "s--", c="k", mfc="none", label="decentralized – fishing")
+    axes[0].plot(deltas, dec_f_catch,  "D:",  c="k", mfc="none", label="mean total catch")
+
     axes[0].set_xlabel("Delta")
     axes[0].set_ylabel("Average adult fish abundance")
     axes[0].legend()
@@ -56,8 +57,9 @@ def fish_plot(deltas,
 
     # Panel (b) – Larvae inflow
     axes[1].plot(deltas, central_larvae, "ko-", label="centralized")
-    axes[1].plot(deltas, dec_nf_larvae, "k^--", label="decentralized – no fishing")
-    axes[1].plot(deltas, dec_f_larvae, "ko--", label="decentralized – fishing")
+    axes[1].plot(deltas, dec_nf_larvae, "o--", c="k", mfc="none", label="decentralized – no fishing")
+    axes[1].plot(deltas, dec_f_larvae, "s--", c="k", mfc="none", label="decentralized – fishing")
+
     axes[1].set_xlabel("Delta")
     axes[1].set_ylabel("Average inflow of larvae")
     axes[1].legend()
@@ -65,6 +67,7 @@ def fish_plot(deltas,
 
     plt.tight_layout()
     plt.show()
+
 
 def water_plot(sim_delta0, sim_delta1):
     years = range(1, len(sim_delta0.july_inflows) + 1)
