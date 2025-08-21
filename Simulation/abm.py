@@ -2,7 +2,7 @@ import numpy as np
 from Farmer import Farmer
 from Authority import NationalAuthority
 from Fish import FishPopulation
-from solver import generate_matrix, solve_game
+from solver import generate_dv_matrix, solve_game
 
 # ---------------------------
 # Parameters
@@ -79,7 +79,7 @@ class Simulation:
                 matrix_size = 2
                 strategy_values = [6, 10]
             else:
-                payoffs = generate_matrix(
+                payoffs = generate_dv_matrix(
                     n=10,
                     m=1,
                     water_field=WATER_PER_FIELD,

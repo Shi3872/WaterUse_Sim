@@ -68,7 +68,6 @@ def fish_plot(deltas,
     plt.tight_layout()
     plt.show()
 
-
 def water_plot(sim_delta0, sim_delta1):
     years = range(1, len(sim_delta0.july_inflows) + 1)
 
@@ -91,8 +90,8 @@ def box_plot(results_dict):
     plot_order = [
         ("Centralized Delta0", "a) Centralized\n$\\delta$ = 0", (0, 0)),  # top-left
         ("Decentralized Delta0", "b) Decentralized\n$\\delta$ = 0", (0, 1)),  # top-right
-        ("Centralized Delta1", "c) Centralized\n$\\delta$ = 1", (1, 0)),  # bottom-left
-        ("Decentralized Delta1", "d) Decentralized\n$\\delta$ = 1", (1, 1))  # bottom-right
+        #("Centralized Delta1", "c) Centralized\n$\\delta$ = 1", (1, 0)),  # bottom-left
+        #("Decentralized Delta1", "d) Decentralized\n$\\delta$ = 1", (1, 1))  # bottom-right
     ]
 
     for key, title, pos in plot_order:
@@ -114,6 +113,79 @@ def box_plot(results_dict):
 
     axes[0, 0].set_ylabel("Annual Irrigation Yield")
     axes[1, 0].set_ylabel("Annual Irrigation Yield")
+
+    plt.tight_layout()
+    plt.show()
+
+def box_plot_dv(results_dict):
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10), sharey=True)
+
+    # Mapping results to panel positions
+    plot_order = [
+        ("Heuristics delta 0", "a) Heuristics\n$\\delta$ = 0", (0, 0)),
+        ("Static CPR", "b) Static CPR", (0, 1)),
+        ("Heuristics delta 1", "c) Heuristics\n$\\delta$ = 1", (1, 0)),
+        ("Complex CPR", "d) Complex CPR", (1, 1)),
+    ]
+
+    for key, title, pos in plot_order:
+        ax = axes[pos]
+        data = results_dict[key]  # shape: [runs][farmers]
+        ax.boxplot(
+            data,
+            positions=range(1, len(data[0]) + 1),
+            patch_artist=True,
+            boxprops=dict(facecolor='lightgray', color='black'),
+            medianprops=dict(color='black'),
+            whiskerprops=dict(color='black'),
+            capprops=dict(color='black'),
+            flierprops=dict(marker='o', markersize=3, markerfacecolor='black', alpha=0.3)
+        )
+
+        ax.set_title(title, loc='left', fontsize=12)
+        ax.set_xlabel("Farmer Position (Upstream → Downstream)")
+        ax.set_xticks(range(1, len(data[0]) + 1))
+        ax.set_xticklabels(range(1, len(data[0]) + 1))
+        ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+    axes[0, 0].set_ylabel("Annual Irrigation Yield")
+    axes[1, 0].set_ylabel("Annual Irrigation Yield")
+
+    fig.suptitle("Comparison of Decentralized Modes: Heuristics vs CPR Variants", fontsize=14, fontweight="bold")
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])  # leave space for title
+    plt.show()
+
+def box_plot_cv(results_dict):
+    fig, axes = plt.subplots(1, 3, figsize=(15, 6), sharey=True)
+
+    plot_order = [
+        ("Heuristics δ=0", "a) Heuristics\n$\\delta$ = 0", 0),
+        ("Heuristics δ=1", "b) Heuristics\n$\\delta$ = 1", 1),
+        ("CPR", "c) Complex CPR", 2),
+    ]
+
+    for key, title, pos in plot_order:
+        ax = axes[pos]
+        data = results_dict[key]
+        ax.boxplot(
+            data,
+            positions=range(1, len(data[0]) + 1),
+            patch_artist=True,
+            boxprops=dict(facecolor='lightgray', color='black'),
+            medianprops=dict(color='black'),
+            whiskerprops=dict(color='black'),
+            capprops=dict(color='black'),
+            flierprops=dict(marker='o', markersize=3, markerfacecolor='black', alpha=0.3)
+        )
+
+        ax.set_title(title, loc='left', fontsize=12)
+        ax.set_xlabel("Farmer Position (Upstream → Downstream)")
+        ax.set_xticks(range(1, len(data[0]) + 1))
+        ax.set_xticklabels(range(1, len(data[0]) + 1))
+        ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+    axes[0].set_ylabel("Annual Irrigation Yield")
 
     plt.tight_layout()
     plt.show()
