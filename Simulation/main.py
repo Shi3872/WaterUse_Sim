@@ -24,7 +24,7 @@ def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=Fals
     inflows = create_test_inflows("3")
 
     for _ in range(1):
-        sim = Simulation(years=50, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=1,
+        sim = Simulation(years=100, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=1,
                         memory_strength=memory_strength, use_cpr_game=use_cpr_game, use_static_game=use_static_game)
         for f in sim.farmers:
             f.memory_strength = memory_strength
@@ -56,48 +56,7 @@ def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=Fals
 if __name__ == "__main__":
     inflows = create_test_inflows("1")  # change case here
 
-    # water plot
-    #sim_delta0 = run_multiple_sims(memory_strength=0, centralized=True, return_sim=True)
-    #sim_delta1 = run_multiple_sims(memory_strength=1, centralized=True, return_sim=True)
-    #water_plot(sim_delta0, sim_delta1)
-    
-    #fish plot
-    '''deltas = np.linspace(0, 1, 11)
-
-    central_adults, central_larvae = [], []
-    dec_nf_adults, dec_nf_larvae = [], []
-    dec_f_adults, dec_f_larvae, dec_f_catch = [], [], []
-
-    for d in deltas:
-        print("\n-----------------------Centralized no fishing-----------------")
-        _, a, l, _, _ = run_multiple_sims(d, centralized=True, fishing_enabled=False)
-        central_adults.append(a)
-        central_larvae.append(l)
-
-        print("'\n -----------------------Decentralized with fishing-----------------")
-        _, a, l, c, _ = run_multiple_sims(d, centralized=False, fishing_enabled=True)
-        dec_f_adults.append(a)
-        dec_f_larvae.append(l)
-        dec_f_catch.append(c)
-
-        print("\n -----------------------Decentralized no fishing-----------------")
-        _, a, l, _, _ = run_multiple_sims(d, centralized=False, fishing_enabled=False)
-        dec_nf_adults.append(a)
-        dec_nf_larvae.append(l)
-
-    fish_plot(deltas, central_adults, central_larvae, dec_nf_adults, dec_nf_larvae, dec_f_adults, dec_f_larvae, dec_f_catch)'''
-
-    #farmer 9 plot
-    '''deltas = [0, 1]
-    results_by_delta = {}
-
-    for d in deltas:
-        _, _, _, _, farmer9_returns = run_multiple_sims(d, centralized=False, fishing_enabled=True)
-        results_by_delta[d] = farmer9_returns 
-        
-    farmer_returns_plot(results_by_delta)'''
-
-    '''# box plot
+    # box plot
     results_delta0 = run_multiple_sims(memory_strength=0, centralized= False)
     results_delta1 = run_multiple_sims(memory_strength=1)
     results_static_cpr = run_multiple_sims(use_cpr_game=True, use_static_game=True)
@@ -111,7 +70,7 @@ if __name__ == "__main__":
     "Complex CPR": results_complex_cpr[0],
     }
 
-    box_plot_dv(results_decentralized)'''
+    box_plot_dv(results_decentralized)
     
     # box plot
     results_delta0 = run_multiple_sims(memory_strength=0, centralized= True)
