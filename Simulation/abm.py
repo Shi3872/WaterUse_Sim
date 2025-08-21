@@ -2,7 +2,7 @@ import numpy as np
 from Farmer import Farmer
 from Authority import NationalAuthority
 from Fish import FishPopulation
-from solver import generate_dv_matrix, solve_game
+from solver import generate_dv_matrix, generate_cv_matrix, solve_game
 
 # ---------------------------
 # Parameters
@@ -14,7 +14,7 @@ FISH_INCOME_SCALE = 5
 LARVAE_INFLOW_THRESHOLD = 2000 
 AUTHORITY_INITIAL_BUDGET = 1800
 CONSUMPTION_COST = 20 # annual
-IRRIGATION_COST =6
+IRRIGATION_COST = 5
 
 # ---------------------------
 
@@ -51,6 +51,35 @@ class Simulation:
         self.fish_history = []
         self.use_cpr_game = use_cpr_game
         self.use_static_game = use_static_game
+
+    def centralized_game(self, monthly_inflows):
+            n_farmers = len(self.farmers)
+            total_water = sum(monthly_inflows)
+            s_threshold = int(total_water / (12 * WATER_PER_FIELD))
+
+            # Build payoff matrix
+            payoffs = generate_cv_matrix(
+                n=10,
+                m=1,
+                water_field=WATER_PER_FIELD,
+                total_water=total_water,
+                yield_field=8,
+                cost_per_field=IRRIGATION_COST,
+                consumption_cost=CONSUMPTION_COST,
+                stress_threshold=s_threshold,
+                stressed_yield=3,
+                authority_budget=self.authority.budget,
+                n_farmers=n_farmers
+            )
+
+            equilibria = solve_game(payoffs, player_labels=("Authority", "Environment"))
+
+            if equilibria:
+                eq = np.random.choice(equilibria)
+                per_farmer_choice = int(np.random.choice(list(range(1, 11)), p=eq["Authority"])) # pick per farmer count (1-10)
+
+                for f in self.farmers: # equal allocation
+                    f.irrigated_fields = per_farmer_choice
 
     def decentralized_game(self, monthly_inflows):
         remaining_water = sum(monthly_inflows)
@@ -126,21 +155,20 @@ class Simulation:
             monthly_inflows = self.water.next_year_inflow()
             july_inflow = monthly_inflows[6]
 
-           # predict water before this year's inflow is known 
-            if self.centralized and self.authority:
-                predicted = self.authority.predict_water()
-                self.predicted_water_history.append(predicted)
-                self.authority.allocate_fields(self.farmers)
+            #---------------Decision logic----------------#
+
+            if self.centralized and self.authority: # Centralized
+                if self.use_cpr_game: # Game logic
+                    self.centralized_game(monthly_inflows)
+                else: # Heuristic logic
+                    predicted = self.authority.predict_water()           
+                    self.predicted_water_history.append(predicted)
+                    self.authority.allocate_fields(self.farmers)
 
             for farmer in self.farmers:
                 farmer.monthly_water_received = []
                 farmer.possible_choices = []
-
-            if year % self.print_interval == 0:
-                print(f"\nYear {year + 1} | Total Inflow: {sum(monthly_inflows):.2f}")
-                lake = 0
-
-            #---------------Decision logic----------------#
+            
             if not self.centralized: # Decentralized
                 if self.use_cpr_game: # Game logic
                     self.decentralized_game(monthly_inflows)
@@ -149,14 +177,18 @@ class Simulation:
                         farmer.predict_water()
                         farmer.decide_irrigation()
 
+            if year % self.print_interval == 0:
+                print(f"\nYear {year + 1} | Total Inflow: {sum(monthly_inflows):.2f}")
+                lake = 0
+
             annual_usage = {f.location: 0.0 for f in self.farmers}
             annual_allocated = {f.location: 0.0 for f in self.farmers}
             runoff_factor = 1
             total_runoff = 0
 
-            # allcoate water month by month
-            for month, inflow in enumerate(monthly_inflows):
-                if self.centralized:
+            # -------------Water allocation-------------- #
+            for month, inflow in enumerate(monthly_inflows): # allcoate water month by month
+                if self.centralized: # Centralized
                     total_fields = sum(f.irrigated_fields for f in self.farmers)
                     monthly_demand = total_fields * WATER_PER_FIELD
 
@@ -177,7 +209,7 @@ class Simulation:
                     monthly_runoff = max(0, inflow - monthly_used)
                     total_runoff += monthly_runoff
 
-                else:
+                else: # Decentralized
                     water_remaining = inflow
                     for farmer in sorted(self.farmers, key=lambda f: f.location):
                         received = farmer.irrigate(water_remaining)
@@ -208,6 +240,8 @@ class Simulation:
                 if year % self.print_interval == 0:
                     print(f"Per farmer: total water used = {used:.2f}, allocated = {allocated:.2f}, remaining inflow: {total_runoff:.2f}")
 
+
+            # ---------------- Fish Dynamics ---------------- #
             may_inflow = monthly_inflows[3]
             self.fish.grow(lake_water=lake, may_inflow=may_inflow)
 
@@ -247,9 +281,8 @@ class Simulation:
 
             for i, f in enumerate(self.farmers):
                 if year % self.print_interval == 0:
-                    if(i == 8):
-                        print(f"Farmer {i+1}: Fields={f.irrigated_fields}, Budget={f.budget:.2f}, "
-                            f"Last Yield={f.yield_history[-1]:.2f}, Catch={int(f.catch_history[-1])}")
+                    print(f"Farmer {i+1}: Fields={f.irrigated_fields}, Budget={f.budget:.2f}, "
+                        f"Last Yield={f.yield_history[-1]:.2f}, Catch={int(f.catch_history[-1])}")
             
             self.annual_fish_totals.append(sum(self.fish.age_classes))
             self.july_inflows.append(self.water.inflow_series[year] / 12.0)  # July inflow assumed uniform

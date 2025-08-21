@@ -1,6 +1,6 @@
 from abm import Simulation, WaterResource
 import numpy as np
-from plots import water_plot, box_plot, fish_plot, farmer_returns_plot
+from plots import water_plot, box_plot, box_plot_cv, box_plot_dv, fish_plot, farmer_returns_plot
 
 def create_test_inflows(case):
     if case == "1": # ideal for centralized
@@ -19,12 +19,13 @@ def create_test_inflows(case):
     else:
         return np.random.uniform(5000, 40000, 200)  # default random inflow
 
-def run_multiple_sims(memory_strength=0, centralized = False, fishing_enabled=False, return_sim = False):
+def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=False, return_sim = False, use_cpr_game=False, use_static_game=False):
     results = []
     inflows = create_test_inflows("3")
 
     for _ in range(1):
-        sim = Simulation(years=50, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=1, memory_strength=memory_strength)
+        sim = Simulation(years=50, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=1,
+                        memory_strength=memory_strength, use_cpr_game=use_cpr_game, use_static_game=use_static_game)
         for f in sim.farmers:
             f.memory_strength = memory_strength
         sim.water = WaterResource(inflows)
@@ -36,11 +37,11 @@ def run_multiple_sims(memory_strength=0, centralized = False, fishing_enabled=Fa
     # Crop yields
     yields = [f.yield_history for f in sim.farmers]
     results.append(np.array(yields).T)
-    avg_results = np.mean(results, axis=0)
+    avg_yield = np.mean(results, axis=0)
 
     # Fish
     adult_fish = [sum(ac[5:]) for ac in sim.fish_history] # adult classes 5+
-    larvae_inflow = [ac[0] for ac in sim.fish_history] # larvae (class 0)
+    larvae_inflow = [ac[0] for ac in sim.fish_history] # l 
     avg_adults = np.mean(adult_fish)
     avg_larvae = np.mean(larvae_inflow)
 
@@ -50,7 +51,7 @@ def run_multiple_sims(memory_strength=0, centralized = False, fishing_enabled=Fa
     # Farmer 9 returns
     farmer9_returns = sim.farmer_budget_history[8]
 
-    return avg_results, avg_adults, avg_larvae, mean_catch, farmer9_returns
+    return avg_yield, avg_adults, avg_larvae, mean_catch, farmer9_returns
     
 if __name__ == "__main__":
     inflows = create_test_inflows("1")  # change case here
@@ -68,44 +69,60 @@ if __name__ == "__main__":
     dec_f_adults, dec_f_larvae, dec_f_catch = [], [], []
 
     for d in deltas:
-        _, a, l, _ = run_multiple_sims(d, centralized=True, fishing_enabled=False)
+        print("\n-----------------------Centralized no fishing-----------------")
+        _, a, l, _, _ = run_multiple_sims(d, centralized=True, fishing_enabled=False)
         central_adults.append(a)
         central_larvae.append(l)
 
-        _, a, l, _ = run_multiple_sims(d, centralized=False, fishing_enabled=False)
+        print("'\n -----------------------Decentralized with fishing-----------------")
+        _, a, l, c, _ = run_multiple_sims(d, centralized=False, fishing_enabled=True)
+        dec_f_adults.append(a)
+        dec_f_larvae.append(l)
+        dec_f_catch.append(c)
+
+        print("\n -----------------------Decentralized no fishing-----------------")
+        _, a, l, _, _ = run_multiple_sims(d, centralized=False, fishing_enabled=False)
         dec_nf_adults.append(a)
         dec_nf_larvae.append(l)
 
-        _, a, l, c = run_multiple_sims(d, centralized=False, fishing_enabled=True)
-        dec_f_adults.append(a)
-        dec_f_larvae.append(l)
-        dec_f_catch.append(c)'''
-    
-
-    #fish_plot(deltas, central_adults, central_larvae, dec_nf_adults, dec_nf_larvae, dec_f_adults, dec_f_larvae, dec_f_catch)
+    fish_plot(deltas, central_adults, central_larvae, dec_nf_adults, dec_nf_larvae, dec_f_adults, dec_f_larvae, dec_f_catch)'''
 
     #farmer 9 plot
-    deltas = [0, 1]
+    '''deltas = [0, 1]
     results_by_delta = {}
 
     for d in deltas:
         _, _, _, _, farmer9_returns = run_multiple_sims(d, centralized=False, fishing_enabled=True)
         results_by_delta[d] = farmer9_returns 
         
-    farmer_returns_plot(results_by_delta)
+    farmer_returns_plot(results_by_delta)'''
+
+    '''# box plot
+    results_delta0 = run_multiple_sims(memory_strength=0, centralized= False)
+    results_delta1 = run_multiple_sims(memory_strength=1)
+    results_static_cpr = run_multiple_sims(use_cpr_game=True, use_static_game=True)
+    results_complex_cpr = run_multiple_sims(use_cpr_game=True, use_static_game=False)
 
 
-    # box plot
-    results_delta0 = run_multiple_sims(memory_strength=0)
-    results_delta1 = run_multiple_sims(memory_strength=1.0)
-    results_celta0 = run_multiple_sims(memory_strength=0, centralized=True)
-    results_celta1 = run_multiple_sims(memory_strength=1.0, centralized=True)
-
-    results = {
-        "Decentralized Delta0": results_delta0,
-        "Decentralized Delta1": results_delta1,
-        "Centralized Delta0": results_celta0,
-        "Centralized Delta1": results_celta1
+    results_decentralized = {
+    "Heuristics delta 0": results_delta0[0],
+    "Static CPR": results_static_cpr[0],
+    "Heuristics delta 1": results_delta1[0],
+    "Complex CPR": results_complex_cpr[0],
     }
 
-    box_plot(results)
+    box_plot_dv(results_decentralized)'''
+    
+    # box plot
+    results_delta0 = run_multiple_sims(memory_strength=0, centralized= True)
+    results_delta1 = run_multiple_sims(memory_strength=1, centralized=True)
+    results_complex_cpr = run_multiple_sims(centralized=True, use_cpr_game=True)
+
+
+    results_centralized = {
+    "Heuristics delta 0": results_delta0[0],
+    "Heuristics delta 1": results_delta1[0],
+    "Complex CPR": results_complex_cpr[0],
+    }
+
+    box_plot_cv(results_centralized)

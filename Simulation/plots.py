@@ -160,9 +160,9 @@ def box_plot_cv(results_dict):
     fig, axes = plt.subplots(1, 3, figsize=(15, 6), sharey=True)
 
     plot_order = [
-        ("Heuristics δ=0", "a) Heuristics\n$\\delta$ = 0", 0),
-        ("Heuristics δ=1", "b) Heuristics\n$\\delta$ = 1", 1),
-        ("CPR", "c) Complex CPR", 2),
+        ("Heuristics delta 0", "a) Heuristics\n$\\delta$ = 0", 0),
+        ("Heuristics delta 1", "b) Heuristics\n$\\delta$ = 1", 1),
+        ("Complex CPR", "c) Complex CPR", 2),
     ]
 
     for key, title, pos in plot_order:
