@@ -6,8 +6,8 @@ import numpy as np
 MAX_FIELDS_CENTRALIZED = 90
 WATER_PER_FIELD = 50.0 # per month
 AUTHORITY_INITIAL_BUDGET = 1800
-CONSUMPTION_COST = 20
-IRRIGATION_COST = 6
+CONSUMPTION_COST = 10
+IRRIGATION_COST = 5
 
 class NationalAuthority:
     def __init__(self, memory_strength):

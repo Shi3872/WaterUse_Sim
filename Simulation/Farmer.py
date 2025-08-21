@@ -8,8 +8,8 @@ DEMAND_THRESHOLD = 0.9
 WATER_PER_FIELD = 50.0 # per month
 FISH_INCOME_SCALE = 5
 FARMER_INITIAL_BUDGET = 350
-CONSUMPTION_COST = 20
-IRRIGATION_COST = 6
+CONSUMPTION_COST = 10
+IRRIGATION_COST = 5
 
 class Farmer:
     def __init__(self, location, memory_strength, min_income):
