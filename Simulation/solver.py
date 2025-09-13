@@ -3,34 +3,76 @@ import pygambit
 
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
+def cv_irrigation(total_fields, water_field, total_water, yield_field, cost_per_field,
+                  consumption_cost, stress_threshold, stressed_yield,
+                  authority_budget, n_farmers):
+
+    WATER_PER_FIELD_YEARLY = water_field * 12
+
+    #limits
+    affordable = min(total_fields, authority_budget // cost_per_field)
+    water_possible = total_water // WATER_PER_FIELD_YEARLY
+    actual_fields = min(affordable, water_possible)
+
+    # Stress threshold
+    is_stressed = actual_fields > stress_threshold
+    yield_factor = stressed_yield if is_stressed else yield_field
+
+    # calculations
+    total_yield = actual_fields * yield_factor
+    total_cost = actual_fields * cost_per_field + (consumption_cost * n_farmers)
+    payoff = total_yield - total_cost
+
+    return payoff
+
 def dv_irrigation(uf_fields, df_fields, water_field, total_water, yield_field, cost_per_field,
                   consumption_cost, stress_threshold, stressed_yield,
                   uf_budget, df_budget, uf_fish_income, df_fish_income):
     
     WATER_PER_FIELD_YEARLY = water_field * 12
 
-    # UF withdraws first
-    uf_water = min(uf_fields * WATER_PER_FIELD_YEARLY, total_water)
+    # limits
+    uf_affordable = min(uf_fields, uf_budget // cost_per_field)
+    df_affordable = min(df_fields, df_budget // cost_per_field)
+
+    uf_water = min(uf_affordable * WATER_PER_FIELD_YEARLY, total_water)
     df_water = max(total_water - uf_water, 0)
 
-    df_actual_fields = min(df_fields, df_water // WATER_PER_FIELD_YEARLY)
+    uf_actual_fields = min(uf_affordable, uf_water // WATER_PER_FIELD_YEARLY)
+    df_actual_fields = min(df_affordable, df_water // WATER_PER_FIELD_YEARLY)
 
-    is_stressed = (uf_fields + df_fields) > stress_threshold
+    # Stress threshold applied to actual irrigated fields
+    is_stressed = (uf_actual_fields + df_actual_fields) > stress_threshold
     yield_factor = stressed_yield if is_stressed else yield_field
 
-    uf_yield = uf_fields * yield_factor + uf_fish_income
+    # calculations
+    uf_yield = uf_actual_fields * yield_factor + uf_fish_income
     df_yield = df_actual_fields * yield_factor + df_fish_income
 
-    uf_cost = uf_fields * cost_per_field + consumption_cost 
-    df_cost = df_fields * cost_per_field + consumption_cost 
+    uf_cost = uf_actual_fields * cost_per_field + consumption_cost 
+    df_cost = df_actual_fields * cost_per_field + consumption_cost 
 
     uf_payoff = uf_yield - uf_cost
     df_payoff = df_yield - df_cost
 
     return (uf_payoff, df_payoff)
+  
+def generate_cv_matrix(n, m, water_field, total_water, yield_field, cost_per_field,
+                       consumption_cost, stress_threshold, stressed_yield,
+                       authority_budget, n_farmers):
 
-# generate full matrix
-def generate_matrix(n, m, water_field, total_water, yield_field, cost_per_field,
+    matrix = []
+    for fields in range(m, m + n):
+        payoff = cv_irrigation(
+            fields, water_field, total_water, yield_field, cost_per_field,
+            consumption_cost, stress_threshold, stressed_yield,
+            authority_budget, n_farmers
+        )
+        row = [(payoff, 0.0)]
+        matrix.append(row)  #authority payoff, env payoff of 0
+    return matrix
+
+def generate_dv_matrix(n, m, water_field, total_water, yield_field, cost_per_field,
                     consumption_cost, stress_threshold, stressed_yield,
                     uf_budget, df_budget, uf_fish_income, df_fish_income):
     matrix = []
