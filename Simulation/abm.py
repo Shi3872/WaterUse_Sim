@@ -1,7 +1,7 @@
 import numpy as np
-from Farmer import Farmer
-from Authority import NationalAuthority
-from Fish import FishPopulation
+from agents.Farmer import Farmer
+from agents.Authority import NationalAuthority
+from agents.Fish import FishPopulation
 from solver import generate_dv_matrix, generate_cv_matrix, solve_game
 
 # ---------------------------
