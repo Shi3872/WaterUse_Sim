@@ -93,7 +93,7 @@ if __name__ == "__main__":
         
     farmer_returns_plot(results_by_delta)
     
-    '''
+    
     sim_delta0 = run_multiple_sims(memory_strength=0, centralized=True, return_sim=True)
     sim_delta1 = run_multiple_sims(memory_strength=1, centralized=True, return_sim=True)
     water_plot(sim_delta0, sim_delta1)
@@ -127,4 +127,4 @@ if __name__ == "__main__":
     }
 
     box_plot_cv(results_centralized)
-    '''
+    
