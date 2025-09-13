@@ -1,0 +1,180 @@
+1) Action Situation 1: “Decentralized Irrigation Extraction”  
+Location: River stretch under Decentralized Version (DV), monthly irrigation season.
+Players: Upstream Farmer (UF), Downstream Farmer (DF)  
+Roles: Each acts as an “Irrigator.”  
+Actions  
+Low: irrigate a conservative number of fields (2 fields).  
+High: irrigate a risky larger number of fields (4 fields).  
+Control Rules  
+UF withdraws water first; DF receives only the remainder.  
+Crop yield ∝ fields × water received; irrigation cost ∝ fields.  
+Information  
+Each knows own past water deliveries (noisy), not the other’s choice this season. 
+Outcomes  
+UF yield unaffected by DF; DF yield depends on UF’s withdrawal.  
+Payoffs  
+Net return = yield – irrigation cost.  
+Strategic Tension  
+Common‐Pool Resource with upstream‐downstream asymmetry → Asymmetric Prisoner’s Dilemma.  
+Temporal Structure  
+Repeated annually (farmers recall past water).  
+Relevant Rules  
+Position rule: sequence by location; choice rule: select Low/High; payoff rule as above.  
+
+Normal‐form payoff matrix (UF payoff first, DF second):
+
+                      DF: Low            DF: High  
+UF: Low            (8, 8)              (8, 16)  
+UF: High           (16, 4)             (16, 6)
+
+Interpretation:
+– UF’s dominant action is High (16>8); DF’s dominant is High (16>8 when UF Low; 6>4 when UF High).
+– Both choosing High → (16,6) is Nash but Pareto‐dominated by (8,8).
+
+Equilibrium:
+UF
+  2: 1.00
+DF
+  2: 1.00
+
+
+
+2) Action Situation 2: “Fish‐Reproduction Investment”
+1. Location
+   • River‐to‐lake April–May flow under either CV or DV.
+2. Players
+   • Farmer A (any river position)
+   • Farmer B (any other)
+3. Roles
+   • Each “May‐Irrigator vs. Conservationist.”
+4. Actions
+   • Delay: hold irrigation in May (0 irrigation now).
+   • Irrigate: withdraw water in May for crops.
+5. Control Rules
+   • If total May irrigation ≤ threshold → larvae migration → high future fish stock; else larval recruitment fails → low future stock.
+6. Information
+   • Both know threshold but not other’s May choice when deciding (simultaneous).
+7. Outcomes
+   • Immediate return from irrigation; future return from fishing depends on reproduction success.
+8. Payoffs
+   • Immediate irrigation revenue = 3; future fish return = 8 if reproduction succeeds, =2 if fails.
+9. Strategic Tension
+   • Nonlinear Public Good (threshold) → a threshold Public‐Goods game with PD‐like structure.
+10. Temporal Structure
+   • Repeated each year (implicit via stock dynamics).
+11. Relevant Rules
+   • Boundary: both must share same flow; choice rule: Delay/Irrigate; control: threshold rule; payoff as above.
+
+Payoff matrix:
+
+                    B: Delay            B: Irrigate
+A: Delay            (8, 8)               (2, 5)
+A: Irrigate         (5, 2)               (5, 5)
+
+Interpretation:
+– Mutual Delay (cooperate) yields highest group payoff (8,8).
+– Unilateral Irrigate is tempting (5>8? No, but immediate gain 3 vs 0).
+– Both Irrigate yields (5,5), less than (8,8).
+
+
+
+
+
+
+3) Action Situation 3: “Lake‐Fishing Harvest Coordination”
+1. Location
+   • Fishing lake at end of season, post‐irrigation.
+2. Players
+   • Downstream Farmer (DF)
+   • Upstream Farmer (UF)
+3. Roles
+   • “Fisher.”
+4. Actions
+   • Low‐Harvest (L): restrain to sustainable catch (2 units).
+   • High‐Harvest (H): catch aggressively (6 units).
+5. Control Rules
+   • Fish stock next season: high if total catch ≤ sustainable limit; low if > limit.
+   • Future catch reward depends on stock.
+6. Information
+   • Each knows only own choice; simultaneous.
+7. Outcomes
+   • Immediate gain = size of catch.
+   • Future gain = 4 if stock high; =1 if stock low.
+8. Payoffs
+   • Total = immediate + future (discounted).
+9. Strategic Tension
+   • Assurance/coordination problem → Stag‐Hunt.
+10. Temporal Structure
+   • Repeated annually.
+11. Relevant Rules
+   • Control: stock update rule; payoff as above.
+
+Payoff matrix:
+
+                       DF: L                DF: H
+UF: L                (6, 6)               (3, 7)
+UF: H                (7, 3)               (7, 7)
+
+Interpretation:
+– Two equilibria: (L,L) both restrain (6,6) and (H,H) both overharvest (7,7); (L,L) is payoff‐dominant but (H,H) is risk‐dominant.
+
+
+
+
+
+
+
+4) Action Situation 4: “Forecasting Trust Interaction”
+1. Location
+   • Beginning of season (April), Centralized Version (CV).
+2. Players
+   • National Authority (NA)
+   • Representative Farmer (RF)
+3. Roles
+   • NA = “Forecaster/Allocator”; RF = “Planner/Irrigator.”
+4. Actions
+   • NA: Forecast Low (L) or High (H) for July inflow.
+   • RF: Plan Conservative (C) fields or Aggressive (A) fields.
+5. Control Rules
+   • If forecast = actual trend (no exogenous error), planned fields match water → good yield; if mismatch → waste or underuse.
+   • For simplicity assume forecast truthfully matches water supply.
+6. Information
+   • RF sees only NA’s announced forecast; NA does not observe RF’s plan at announcement.
+7. Outcomes
+   • Good match (Forecast=L & Plan C) or (H & A) → high payoffs for both; mismatch reduces yields & authority’s budget.
+8. Payoffs
+   • Match payoffs: NA=10 (budget gain), RF=8 (yield‐net cost).
+   • Mismatch: if NA over‐forecasts (H&C) → NA=4 (crop failures), RF=3; if under‐forecasts (L&A) → NA=5 (under‐utilization), RF=4.
+9. Strategic Tension
+   • Trust game: RF must trust NA’s forecast; NA may benefit by over‐optimistic forecast to boost investment.
+10. Temporal Structure
+   • One‐shot at season start (or repeated if NA reputational).
+11. Relevant Rules
+   • Choice: L/H and C/A; payoff mapping as above.
+
+Payoff matrix:
+
+                         RF: C              RF: A
+NA: L           (10, 8)             (5, 4)
+NA: H           (4, 3)               (10, 8)
+
+Interpretation:
+– Two pure‐strategy equilibria: (L,C) and (H,A).
+– RF must trust NA’s forecast to achieve high payoffs; NA is indifferent between honest forecasts but could mislead if RF always conservative.
+
+—
+Strategic‐core classification:
+• Game 1 is an asymmetric Prisoner’s Dilemma (dominant defection for both).
+• Game 2 is a threshold Public‐Goods game (nonlinear PD‐like).
+• Game 3 is a Stag‐Hunt (coordination/assurance).
+• Game 4 is a Trust game (sequential trust/trustworthiness, here cast in normal form).
+
+Comparison and Diversity Check
+– Games 1&2 both involve CPR but differ in payoff nonlinearity (Game 1 linear PD vs Game 2 threshold PG).
+– Game 3 shifts to pure coordination (stag‐hunt), distinct from PDs.
+– Game 4 introduces information asymmetry and trust.
+
+All four comply with the ODD+D description:
+– Spatial asymmetry in Game 1 and 3 matches upstream‐downstream logic;
+– Threshold‐based reproduction in Game 2 follows the May‐inflow rule;
+– CV forecasting in Game 4 mirrors NA’s prediction and its impact on farmers.

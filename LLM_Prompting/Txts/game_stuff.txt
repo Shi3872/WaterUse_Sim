@@ -1,0 +1,124 @@
+CV, beginning of season (April): national authority predicts
+water inflow to the river stretch, decides about the number
+of fields to irrigate, farmers calculate water demand.
+In the centralized version, the national authority determines the number of fields that can be irrigated with the expected amount of water.
+So they don't allocate water, they allocate an equal number of fields to every farmer.
+CV, each month: farmers irrigate, water flows onto the
+fields and into the lake.
+CV, end of the year: fish population grows, farmers harvest,
+national authority calculates budget.
+DV, beginning of season (April): each farmer predicts water
+availability at his location along the river, decides on the
+number of fields to irrigate, calculates water demands.
+DV, each month: farmers irrigate, water flows onto the
+fields and into the lake.
+DV, end of the year: fish population grows, farmers harvest,
+calculate individual budgets.
+Each agent is updated in the sequence determined by its
+location along the river stretch.
+
+Upstream farmers have access to the water inflow first, while downstream farmers have access to the fishes first. Farmers are the ones fishing, there are no 'fishermen'
+
+Water flow prediction: The agents predict water flows for the upcoming year by evaluating
+the observed water flows of previous years during the peak month of July. In the centralised
+version, the national authority bases its prediction on past flows into the river stretch. In the
+decentralised version, each farmer bases his prediction on the observed water flows at his
+location along the river stretch. Both the national authority and farmers have a memory
+capacity, 𝛿, that determines the strength with which past years affect the current year’s
+estimate. This is modelled with the following relationship:
+𝑉7,𝐸,𝑡 =
+∑ 𝛿
+𝑡−1 𝑖
+𝑖=0 ∗ 𝑉7,𝑅
+(𝑡 − 1 − 𝑖)
+∑ 𝛿
+𝑡−1 𝑖
+𝑖=0
+Where 𝑉7,𝐸 = expected water flow in month 7, 𝑉7,𝑅 = received water flow in month 7, 𝛿 =
+memory capacity.
+The smaller delta is, the stronger an agent weighs the most recent years’ experiences and the
+more the estimates try to capture the fluctuations in water availability.
+Water allocation planning: The agents base their decision on the number of fields to irrigate
+each season on their prediction of water flows and the available budget. In the centralised
+version, the national authority determines the number of fields that can be irrigated with the
+expected amount of water and the available budget and distributes the water resources equally
+to all farmers. If the budget is not sufficient, the national authority reduces the number of
+irrigated fields to the amount that can be cropped. In the decentralised version, each farmer
+first assesses his income situation. If the income in the past year was below a critical threshold
+the farmer will risk and increase the number of irrigated fields by one independent of the
+water flow predictions, hoping that more water will be available in the current year. If his
+income is above the threshold but his water demands have not been met in the previous year,
+the farmer will not risk losing his investment but rather irrigate the number of fields suitable
+for the amount of water he/she expects in the current year. If the farmer received the
+demanded amount of water in the past year and has the necessary financial resources, he/she
+will increase the number of fields by one to test whether he/she can receive more water in the
+future. In all cases, the number of irrigated fields is limited by the farmer’s available budget
+and the maximum number of fields of the farm.
+Irrigation: During the vegetation season, farmers irrigate their fields every month. Water
+stress occurs when the amount of water delivered is less than the amount needed to irrigate all
+of the planned fields. Water stress accumulates over the season and affects yields according to
+the following relationship:
+𝑌𝑗,𝑡 = 𝑌𝑚𝑎𝑥 ∗ 𝑁𝐹,𝑗 ∗ (∑
+𝑉𝑅,𝑗,𝑚
+𝑉𝐷,𝑗,𝑚
+)/6
+9
+𝑚=4
+Where 𝑌𝑗,𝑡 = yield of farmer 𝑗 at time 𝑡, 𝑌𝑚𝑎𝑥 = maximum yield, 𝑁𝐹,𝑗 = number of fields of
+farmer 𝑗, 𝑉𝑅,𝑚 = received water volume in month m and 𝑉𝐷,𝑚 = demanded water volume in
+month m.
+Fishing: The farmers access the fishing lake in the order of their distance from the lake, i.e.
+the downstream farmers can access the lake first. Each farmer tries to catch the amount of fish
+given by a fixed target catch level. Fishing is not costly to the farmer and does not affect
+agricultural activities. Fish are caught randomly from one of the adult age classes.
+Fish population growth: The fish population is modelled with an age-structured Leslie type
+matrix model with 12 age classes. The age 0 class is composed of fish born by all mature age
+classes (age 5-12) as well as larvae that migrate into the lake from upstream. Migration
+depends on the amount of water inflow into the lake during reproduction in May, which has to
+be above a certain threshold so that the larvae can survive. The number of larvae transported
+into the lake is proportional to the water volume once the threshold value is passed. Survival
+of the fish in the juvenile age classes 1-4 is density dependent, while adult fish are only
+subject to density-independent natural mortality. Only adult fish from age class 5 and onwards
+are harvested, and fish older than 12 years die.
+𝑁0,𝑡 = 𝐼𝑡 + ∑𝛼 ∗ 𝑒
+−𝜎 ∑ 𝑁𝑖,𝑡−1
+12
+𝑖=5 ∗ 𝑁𝑖,𝑡−1
+12
+𝑖=5
+𝑁𝑛,𝑡 = (1 − 𝛽𝑛−1
+)𝑁𝑛−1,𝑡−1 − 𝛾𝑗𝑢𝑣(∑𝑁𝑖,𝑡−1)
+4
+𝑖=0
+2
+𝑖𝑓 𝑛 ∈ (1,2,3,4)
+𝑁𝑛,𝑡 = (1 − 𝛽𝑛−1
+)𝑁𝑛−1,𝑡−1 𝑖𝑓 𝑛 ∈ (5, … . ,12)
+Where 𝑁0,𝑡 = number of individuals in age class 0 at time t, 𝑁𝑛,𝑡 = number of individuals in
+𝑛 age class at time t, 𝐼 = immigration of larvae at time t, 𝛼 = birth rate, 𝜎 = strength of
+density dependence, 𝛽 = natural mortality, 𝛾 = density dependent mortality.
+The model was calibrated to reflect the current, non-viable state of the fish populations in the
+aquatic ecosystems in the delta that can only survive through the regular inflow of larvae and
+offspring from more suitable habitats further upstream (Joldasova et al., 2002).
+6
+WaterFlow: The water resource is modelled as a one-dimensional flow from upstream to
+downstream. The inflow of water into the river stretch is taken from a 15-year characteristic
+monthly runoff time series of inflow to the Amudarya river delta, which reflects the
+variability of water flows in this river basin (Schlüter et al., 2005). The water flow directly
+reaches the first farmer. Each farmer withdraws water sequentially according to his needs for
+irrigation. The remaining water flows downstream into the fishing lake.
+Budget calculations: In the centralised version, the national authority calculates its budget as
+the accumulated sum of net returns from crop production of all farmers minus the costs for
+irrigation and the consumption needs of the farmers:
+𝑅𝑡𝑜𝑡𝑎𝑙,𝑡 = 𝑅𝑡𝑜𝑡𝑎𝑙,𝑡−1 + 𝑌𝑡𝑜𝑡𝑎𝑙,𝑡 − 𝐶𝐼,𝑡𝑜𝑡𝑎𝑙,𝑡 − 𝐶𝑐,𝑡𝑜𝑡𝑎𝑙,𝑡
+Where 𝑅𝑡𝑜𝑡𝑎𝑙,𝑡 = global returns at time t, 𝐶𝐼,𝑡𝑜𝑡𝑎𝑙 = sum of irrigation costs of all farmers,
+𝐶𝐶,𝑡𝑜𝑡𝑎𝑙 = sum of consumption of all farmers, 𝑌𝑡𝑜𝑡𝑎𝑙 = sum of yields of all farmers.
+Note that in the centralised version, the returns from fishing remain with the individual
+farmers, as fishing is a subsistence activity that enables the farmers to cover his consumptive
+needs or provide for investment in agriculture.
+The budget of each farmer in the decentralised version is the sum of the returns from
+agriculture and fishing minus the costs for irrigation and consumption.
+𝑅𝑗,𝑡 = 𝑅𝑗,𝑡−1 + 𝑌𝑗,𝑡 + 𝜆 ∗ 𝐻𝑗,𝑡 − 𝐶𝐼,𝑗,𝑡 − 𝐶𝐶,𝑗,𝑡
+Where 𝑅𝑗,𝑡 = accumulated local returns of farmer j at time t, 𝑌𝑗,𝑡 = yields of farmer j at time t,
+𝜆 = scaling factor for income from fish catch, 𝐻𝑗,𝑡 = fish catch of farmer j at time t, 𝐶𝐼,𝑗,𝑡 =
+irrigation costs of famer j at time t, 𝐶𝐶,𝑗,𝑡 = consumption costs of farmer j at time t.
