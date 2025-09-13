@@ -1,6 +1,10 @@
 from together import Together
+from dotenv import load_dotenv
+import os
 
-client = Together(api_key="E5307f8b690acfd333a0a41f72c1953bc8ad6ae969a25ea77ae31495aa09cb5c")
+load_dotenv() # load .env 
+api_key = os.getenv("TOGETHER_API_KEY") # access your key
+client = Together(api_key=api_key)
 
 with open("LLM_Prompting/Txts/odd.txt", "r", encoding="utf-8") as f:
     odd = f.read()
