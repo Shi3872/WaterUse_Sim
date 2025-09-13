@@ -6,7 +6,7 @@ class FishPopulation:
         self.age_classes = [1000, 500] + [100] * 11 # age 0 to 12; 0 = larvae, 1–4 = juvenile, 5+ = adult
         self.larvae_survival_rate = 0.3
         self.adult_spawn_rate = 1.2
-        self.carrying_capacity = 100000  # Max sustainable population
+        self.carrying_capacity = 10000  # Max sustainable population
         self.mortality_density_independent = [0.4, 0.3, 0.2, 0.1, 0.05] + [0.1] * 8
         self.reproduction_rates = [0.0] * 5 + [0.5, 0.7, 0.9, 1.0, 1.0, 1.0, 1.0, 1.0]
         self.migration_rate_age_0 = 0.25
@@ -46,32 +46,22 @@ class FishPopulation:
         
         self.age_classes = new_population
 
-    def harvest(self, effort):
+    def harvest(self, target_catch):
         adult_indices = range(5, 13)  # age classes 5 to 12
-        adults = sum(self.age_classes[i] for i in adult_indices)
-        
-        if adults < 100 or effort <= 0:
-            return 0
+        catch = 0
 
-        harvest_rate = 0.03  # 3% of adults per unit effort
-        max_catch = int(adults * harvest_rate * effort)
-        catch = min(max_catch, adults)
+        for _ in range(target_catch):
+            adults_total = sum(self.age_classes[i] for i in adult_indices)
+            if adults_total == 0:
+                break
 
-        if catch <= 0:
-            return 0
+            # random adult fish, weighted by availability
+            weights = np.array([self.age_classes[i] for i in adult_indices])
+            probabilities = weights / weights.sum()
 
-        # Proportional harvest from age classes
-        weights = np.array([self.age_classes[i] for i in adult_indices])
-        probabilities = weights / weights.sum()
-
-        harvested = 0
-        for _ in range(catch):
             chosen = np.random.choice(adult_indices, p=probabilities)
             if self.age_classes[chosen] > 0:
                 self.age_classes[chosen] -= 1
-                harvested += 1
-                weights = np.array([self.age_classes[i] for i in adult_indices])
-                if weights.sum() == 0:
-                    break
-                probabilities = weights / weights.sum()
-        return harvested
+                catch += 1
+
+        return catch
