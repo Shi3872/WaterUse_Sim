@@ -1,8 +1,9 @@
 import numpy as np
-from agents.Farmer import Farmer
-from agents.Authority import NationalAuthority
-from agents.Fish import FishPopulation
-from solver import generate_dv_matrix, generate_cv_matrix, solve_game
+from Simulation.agents.Farmer import Farmer
+from Simulation.agents.Authority import NationalAuthority
+from Simulation.agents.Fish import FishPopulation
+from Simulation.solver import generate_dv_matrix, generate_cv_matrix, solve_game
+import math
 
 # ---------------------------
 # Parameters
@@ -32,7 +33,7 @@ class WaterResource:
         return np.zeros(12) # return an array of 12 values
 
 class Simulation:
-    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, memory_strength=0, use_cpr_game = False, use_static_game = False):
+    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, memory_strength=0, use_cpr_game = False, use_static_game = False, generative_agent=False, llm_provider="together"):
         self.years = years
         self.farmers = [Farmer(location=i, memory_strength=1, min_income=30) for i in range(9)]
         for f in self.farmers:
@@ -51,6 +52,8 @@ class Simulation:
         self.fish_history = []
         self.use_cpr_game = use_cpr_game
         self.use_static_game = use_static_game
+        self.generative_agent = generative_agent
+        self.llm_provider = llm_provider
 
     def centralized_game(self, monthly_inflows):
             n_farmers = len(self.farmers)
@@ -154,7 +157,7 @@ class Simulation:
         for year in range(self.years):
             monthly_inflows = self.water.next_year_inflow()
             july_inflow = monthly_inflows[6]
-
+            print(f"\n--- Year {year + 1} ---")
             #---------------Decision logic----------------#
 
             if self.centralized and self.authority: # Centralized
@@ -175,7 +178,13 @@ class Simulation:
                 else: # Heuristic logic
                     for farmer in self.farmers:
                         farmer.predict_water()
-                        farmer.decide_irrigation()
+                        if not self.generative_agent:
+                            farmer.decide_irrigation()
+                        else:
+                            if np.random.random() < 0.5: # 10% chance to use generative agent
+                                farmer.decide_irrigation_generative_agent(provider=self.llm_provider)
+                            else:
+                                farmer.decide_irrigation()
 
             if year % self.print_interval == 0:
                 if self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:

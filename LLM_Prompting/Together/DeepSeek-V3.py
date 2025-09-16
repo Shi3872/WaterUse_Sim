@@ -94,6 +94,9 @@ Specify why or why not each game complies with the odd+d description. If it does
 The revised game should be the only ones shown in the actual output.
 
 Please use clear, structured formatting. Number each action situation. Do not repeat strategic tensions across situations.
+
+Most important: For each strategic action situation, generate the game and payoff matrix in the following Python dict format:
+game_1 = {{ (player1_action, player2_action): (player1_payoff, player2_payoff) }}
 """
 
 

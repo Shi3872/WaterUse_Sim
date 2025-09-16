@@ -1,6 +1,6 @@
 from Simulation.core.abm import Simulation, WaterResource
 import numpy as np
-from plots import water_plot, box_plot, box_plot_cv, box_plot_dv, fish_plot, farmer_returns_plot
+from Simulation.plots import water_plot, box_plot, box_plot_cv, box_plot_dv, fish_plot, farmer_returns_plot
 
 def create_test_inflows(case):
     if case == "1": # ideal for centralized
@@ -19,13 +19,14 @@ def create_test_inflows(case):
     else:
         return np.random.uniform(5000, 40000, 200)  # default random inflow
 
-def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=False, return_sim = False, use_cpr_game=False, use_static_game=False):
+def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=False, return_sim = False, use_cpr_game=False, use_static_game=False, generative_agent=True, llm_provider="together"):
     results = []
     inflows = create_test_inflows("3")
 
     for _ in range(1):
-        sim = Simulation(years=100, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=1,
-                        memory_strength=memory_strength, use_cpr_game=use_cpr_game, use_static_game=use_static_game)
+        sim = Simulation(years=20, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=1,
+                        memory_strength=memory_strength, use_cpr_game=use_cpr_game, use_static_game=use_static_game, 
+                        generative_agent=generative_agent, llm_provider=llm_provider)
         for f in sim.farmers:
             f.memory_strength = memory_strength
         sim.water = WaterResource(inflows)

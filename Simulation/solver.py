@@ -56,6 +56,90 @@ def dv_irrigation(uf_fields, df_fields, water_field, total_water, yield_field, c
     df_payoff = df_yield - df_cost
 
     return (uf_payoff, df_payoff)
+
+import math
+from typing import Tuple
+
+
+def dv_irrigation_smooth(uf_fields, df_fields, water_field, total_water, yield_field, cost_per_field,
+                  consumption_cost, stress_threshold, stressed_yield,
+                  uf_budget, df_budget, uf_fish_income, df_fish_income,
+                  tau_minmax=0.1, tau_sig=0.1):
+    """
+    Smooth continuous approximation of dv_irrigation.
+    uf_fields, df_fields: strategies (requested irrigated fields, can be continuous).
+    tau_minmax: smoothing parameter for min/max/clip.
+    tau_sig: smoothing parameter for stress threshold.
+    """
+
+    # ---- smooth helpers ----
+    def softplus(x, t):
+        z = x / t
+        if z > 20:  # stable branch
+            return x
+        if z < -20:
+            return 0.0
+        return t * math.log1p(math.exp(z))
+
+    def relu_smooth(x, t):
+        return softplus(x, t)  # ≈ max(x,0)
+
+    def softmax2(a, b, t):
+        m = max(a, b)
+        return t * math.log(math.exp((a - m)/t) + math.exp((b - m)/t)) + m
+
+    def softmin2(a, b, t):
+        return -softmax2(-a, -b, t)
+
+    def clip_smooth(x, lo, hi, t):
+        return softmin2(hi, softmax2(lo, x, t), t)
+
+    def sigmoid(x, t):
+        z = x / t
+        if z >= 0:
+            ez = math.exp(-z)
+            return 1.0 / (1.0 + ez)
+        else:
+            ez = math.exp(z)
+            return ez / (1.0 + ez)
+
+    # ---- constants ----
+    WATER_PER_FIELD_YEARLY = water_field * 12.0
+    N = total_water / max(WATER_PER_FIELD_YEARLY, 1e-12)
+
+    # strategies are requested fields (continuous, but clipped to physical max)
+    su = clip_smooth(uf_fields, 0.0, uf_fields, tau_minmax)
+    sd = clip_smooth(df_fields, 0.0, df_fields, tau_minmax)
+
+    # ---- budget-limited affordability ----
+    Bu_cap = uf_budget / max(cost_per_field, 1e-12)
+    Bd_cap = df_budget / max(cost_per_field, 1e-12)
+
+    au = softmin2(su, Bu_cap, tau_minmax)
+    ad = softmin2(sd, Bd_cap, tau_minmax)
+
+    # ---- upstream allocation priority ----
+    fu = softmin2(au, N, tau_minmax)
+    rem = relu_smooth(N - fu, tau_minmax)
+    fd = softmin2(ad, rem, tau_minmax)
+
+    # ---- stress sigmoid ----
+    total_fields = fu + fd
+    I = sigmoid(total_fields - stress_threshold, tau_sig)
+    y = (1.0 - I) * yield_field + I * stressed_yield
+
+    # ---- payoffs ----
+    uf_yield = fu * y + uf_fish_income
+    df_yield = fd * y + df_fish_income
+
+    uf_cost = fu * cost_per_field + consumption_cost
+    df_cost = fd * cost_per_field + consumption_cost
+
+    uf_payoff = uf_yield - uf_cost
+    df_payoff = df_yield - df_cost
+
+    return (uf_payoff, df_payoff)
+
   
 def generate_cv_matrix(n, m, water_field, total_water, yield_field, cost_per_field,
                        consumption_cost, stress_threshold, stressed_yield,
