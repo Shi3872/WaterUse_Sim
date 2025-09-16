@@ -9,19 +9,21 @@ def cv_irrigation(total_fields, water_field, total_water, yield_field, cost_per_
 
     WATER_PER_FIELD_YEARLY = water_field * 12
 
-    #limits
-    affordable = min(total_fields, authority_budget // cost_per_field)
-    water_possible = total_water // WATER_PER_FIELD_YEARLY
-    actual_fields = min(affordable, water_possible)
+    affordable_total = min(total_fields, max(0, authority_budget) // cost_per_field) # budget cap
+    water_possible_total = total_water // WATER_PER_FIELD_YEARLY # water cap
 
-    # Stress threshold
-    is_stressed = actual_fields > stress_threshold
+    actual_total_fields = int(min(affordable_total, water_possible_total)) # actual fields
+
+    # stress threshold
+    is_stressed = actual_total_fields > stress_threshold
     yield_factor = stressed_yield if is_stressed else yield_field
 
-    # calculations
-    total_yield = actual_fields * yield_factor
-    total_cost = actual_fields * cost_per_field + (consumption_cost * n_farmers)
-    payoff = total_yield - total_cost
+    # calculation
+    total_yield = actual_total_fields * yield_factor
+    total_irrigation = actual_total_fields * cost_per_field
+    total_consumption = consumption_cost * n_farmers
+
+    payoff = total_yield - total_irrigation - total_consumption
 
     return payoff
 
@@ -62,14 +64,14 @@ def generate_cv_matrix(n, m, water_field, total_water, yield_field, cost_per_fie
                        authority_budget, n_farmers):
 
     matrix = []
-    for fields in range(m, m + n):
+    for per_farmer in range(m, m + n):  # 1..10 fields per farmer
+        total_fields = per_farmer * n_farmers  # system-wide total
         payoff = cv_irrigation(
-            fields, water_field, total_water, yield_field, cost_per_field,
+            total_fields, water_field, total_water, yield_field, cost_per_field,
             consumption_cost, stress_threshold, stressed_yield,
             authority_budget, n_farmers
         )
-        row = [(payoff, 0.0)]
-        matrix.append(row)  #authority payoff, env payoff of 0
+        matrix.append([(payoff, 0.0)])
     return matrix
 
 def generate_dv_matrix(n, m, water_field, total_water, yield_field, cost_per_field,
