@@ -90,8 +90,8 @@ def box_plot(results_dict):
     plot_order = [
         ("Centralized Delta0", "a) Centralized\n$\\delta$ = 0", (0, 0)),  # top-left
         ("Decentralized Delta0", "b) Decentralized\n$\\delta$ = 0", (0, 1)),  # top-right
-        #("Centralized Delta1", "c) Centralized\n$\\delta$ = 1", (1, 0)),  # bottom-left
-        #("Decentralized Delta1", "d) Decentralized\n$\\delta$ = 1", (1, 1))  # bottom-right
+        ("Centralized Delta1", "c) Centralized\n$\\delta$ = 1", (1, 0)),  # bottom-left
+        ("Decentralized Delta1", "d) Decentralized\n$\\delta$ = 1", (1, 1))  # bottom-right
     ]
 
     for key, title, pos in plot_order:
@@ -160,7 +160,7 @@ def box_plot_cv(results_dict):
     fig, axes = plt.subplots(1, 3, figsize=(15, 6), sharey=True)
 
     plot_order = [
-        ("Heuristics delta 0", "a) Heuristics\n$\\delta$ = 0", 0),
+        #("Heuristics delta 0", "a) Heuristics\n$\\delta$ = 0", 0),
         ("Heuristics delta 1", "b) Heuristics\n$\\delta$ = 1", 1),
         ("Complex CPR", "c) Complex CPR", 2),
     ]

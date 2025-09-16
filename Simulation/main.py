@@ -1,6 +1,6 @@
-from Simulation.core.abm import Simulation, WaterResource
+from core.abm import Simulation, WaterResource
 import numpy as np
-from plots import water_plot, box_plot, box_plot_cv, box_plot_dv, fish_plot, farmer_returns_plot
+from core.plots import water_plot, box_plot, box_plot_cv, box_plot_dv, fish_plot, farmer_returns_plot
 
 def create_test_inflows(case):
     if case == "1": # ideal for centralized
@@ -24,7 +24,7 @@ def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=Fals
     inflows = create_test_inflows("3")
 
     for _ in range(1):
-        sim = Simulation(years=100, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=1,
+        sim = Simulation(years=80, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=1,
                         memory_strength=memory_strength, use_cpr_game=use_cpr_game, use_static_game=use_static_game)
         for f in sim.farmers:
             f.memory_strength = memory_strength
@@ -55,7 +55,7 @@ def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=Fals
     
 if __name__ == "__main__":
     inflows = create_test_inflows("1")  # change case here
-    '''
+
     #fish plot
     deltas = np.linspace(0, 1, 11)
 
@@ -96,8 +96,7 @@ if __name__ == "__main__":
     sim_delta0 = run_multiple_sims(memory_strength=0, centralized=True, return_sim=True)
     sim_delta1 = run_multiple_sims(memory_strength=1, centralized=True, return_sim=True)
     water_plot(sim_delta0, sim_delta1)
-    '''
-    
+
     # box plot
     results_delta0 = run_multiple_sims(memory_strength=0, centralized= False)
     results_delta1 = run_multiple_sims(memory_strength=1)
@@ -113,15 +112,15 @@ if __name__ == "__main__":
     }
 
     box_plot_dv(results_decentralized)
-    
+
     # box plot
-    results_complex_cpr = run_multiple_sims(centralized=True, use_cpr_game=True)
-    results_delta0 = run_multiple_sims(memory_strength=0, centralized= True)
+    #results_delta0 = run_multiple_sims(memory_strength=0, centralized= True)
     results_delta1 = run_multiple_sims(memory_strength=1, centralized=True)
+    results_complex_cpr = run_multiple_sims(centralized=True, use_cpr_game=True)
     
     
     results_centralized = {
-    "Heuristics delta 0": results_delta0[0],
+    #"Heuristics delta 0": results_delta0[0],
     "Heuristics delta 1": results_delta1[0],
     "Complex CPR": results_complex_cpr[0],
     }
