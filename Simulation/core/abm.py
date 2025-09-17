@@ -79,11 +79,29 @@ class Simulation:
 
             if equilibria:
                 eq = np.random.choice(equilibria)
-                per_farmer_choice = int(np.random.choice(list(range(1, 11)), p=eq["Authority"])) # pick per farmer count (1-10)
 
-                for f in self.farmers: # equal allocation
-                    f.irrigated_fields = per_farmer_choice
+                auth_probs = eq["Authority"]
+                if len(auth_probs) != 10:
+                    auth_probs = np.ones(10) / 10.0  # fallback uniform
 
+                # Authority strategy choice (game outcome)
+                per_farmer_choice = int(np.random.choice(range(1, 11), p=auth_probs))
+
+                # Compute feasibility once (same as in cv_irrigation)
+                requested_total = per_farmer_choice * n_farmers
+                affordable_total = max(0, self.authority.budget) // IRRIGATION_COST
+                WATER_PER_FIELD_YEARLY = WATER_PER_FIELD * 12
+                water_possible_total = total_water // WATER_PER_FIELD_YEARLY
+                feasible_total = min(affordable_total, water_possible_total)
+
+                # If feasible, assign equally; if not, cap to feasible
+                if requested_total <= feasible_total:
+                    final_alloc = per_farmer_choice
+                else:
+                    final_alloc = feasible_total // n_farmers
+
+                for f in self.farmers:
+                    f.irrigated_fields = final_alloc
     def decentralized_game(self, monthly_inflows):
         remaining_water = sum(monthly_inflows)
         for i in range(len(self.farmers) - 1):
@@ -187,8 +205,8 @@ class Simulation:
                                 farmer.decide_irrigation()
 
             if year % self.print_interval == 0:
-                if self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
-                    print(f"\nYear {year + 1} | Total Inflow: {sum(monthly_inflows):.2f}")
+                # self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
+                print(f"\nYear {year + 1} | Total Inflow: {sum(monthly_inflows):.2f}")
                 lake = 0
 
             annual_usage = {f.location: 0.0 for f in self.farmers}
@@ -248,8 +266,8 @@ class Simulation:
                 used = annual_usage[loc]
                 allocated = annual_allocated.get(loc, used)
                 if year % self.print_interval == 0:
-                    if self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
-                        print(f"Per farmer: total water used = {used:.2f}, allocated = {allocated:.2f}, remaining inflow: {total_runoff:.2f}")
+                    #if self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
+                    print(f"Per farmer: total water used = {used:.2f}, allocated = {allocated:.2f}, remaining inflow: {total_runoff:.2f}")
 
 
             # ---------------- Fish Dynamics ---------------- #
@@ -263,8 +281,8 @@ class Simulation:
 
             if year % self.print_interval == 0:
                 #print(f"Lake Water = {lake:.2f}")
-                if self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
-                    print(f"Fish Status — Total: {total_fish}, Adults: {adult_fish}, Juveniles: {juvenile_fish}, Larvae: {larvae}")
+                #if self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
+                print(f"Fish Status — Total: {total_fish}, Adults: {adult_fish}, Juveniles: {juvenile_fish}, Larvae: {larvae}")
 
             total_yield = 0
             total_irrigation = 0
@@ -283,20 +301,21 @@ class Simulation:
             for i, f in enumerate(self.farmers): # append budget
                     self.farmer_budget_history[i].append(f.budget)
 
+            # --------------------budget calc----------------#
             if self.centralized and self.authority:
                 self.authority.budget += total_yield - total_irrigation - total_consumption
                 self.authority.net_returns = [total_yield, total_irrigation, total_consumption]
                 self.authority_budget_history.append(self.authority.budget) # append budget
                 if year % self.print_interval == 0:
-                    if self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
-                        print(f"National Authority Budget = {self.authority.budget:.2f} "
-                            f"(Income: {total_yield:.2f}, Irrigation Cost: {total_irrigation:.2f}, Consumption Cost: {total_consumption:.2f}) \n")
+                    #if self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
+                    print(f"National Authority Budget = {self.authority.budget:.2f} "
+                        f"(Income: {total_yield:.2f}, Irrigation Cost: {total_irrigation:.2f}, Consumption Cost: {total_consumption:.2f}) \n")
 
             for i, f in enumerate(self.farmers):
                 if year % self.print_interval == 0:
-                    if self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
-                        print(f"Farmer {i+1}: Fields={f.irrigated_fields}, Budget={f.budget:.2f}, "
-                            f"Last Yield={f.yield_history[-1]:.2f}, Catch={int(f.catch_history[-1])}")
+                    #if self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
+                    print(f"Farmer {i+1}: Fields={f.irrigated_fields}, Budget={f.budget:.2f}, "
+                        f"Last Yield={f.yield_history[-1]:.2f}, Catch={int(f.catch_history[-1])}")
             
             self.annual_fish_totals.append(sum(self.fish.age_classes))
             self.july_inflows.append(self.water.inflow_series[year] / 12.0)  # July inflow assumed uniform
