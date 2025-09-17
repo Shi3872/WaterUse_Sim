@@ -1,0 +1,90 @@
+# Water Use Simulation Configuration File
+# This file contains all configurable parameters for the simulation
+
+# Simulation Setup
+simulation:
+  years: 20                    # Number of years to simulate
+  print_interval: 1            # Print output every N years
+  num_farmers: 9               # Number of farmers in the simulation
+  
+# Water Management
+water:
+  per_field_monthly: 50.0      # Water required per field per month
+  inflow_case: "3"             # Test case for inflow pattern ("1", "2", "3", or "random")
+  
+# Economic Parameters
+economy:
+  farmer_initial_budget: 350   # Starting budget for each farmer
+  authority_initial_budget: 1800 # Starting budget for national authority
+  consumption_cost: 15         # Annual consumption cost per farmer
+  irrigation_cost: 6           # Cost per irrigated field
+  fish_income_scale: 5         # Multiplier for fish catch income
+  
+# Field Constraints
+fields:
+  max_decentralized: 10        # Maximum fields per farmer in decentralized system
+  max_centralized: 90          # Maximum total fields in centralized system
+  demand_threshold: 0.9        # Water satisfaction threshold for decision making
+  
+# Fish Population
+fish:
+  larvae_inflow_threshold: 2000 # Minimum inflow for larvae survival
+  
+# Agent Behavior
+agents:
+  memory_strength: 0           # Memory strength for water prediction (0-1)
+  min_income: 30               # Minimum income requirement for farmers
+  
+# System Configuration
+system:
+  centralized: false           # Use centralized (true) or decentralized (false) management
+  fishing_enabled: false       # Enable fishing activities
+  
+# Game Theory Options
+games:
+  use_cpr_game: false          # Use Common Pool Resource game logic
+  use_static_game: false       # Use static 2x2 game matrix
+  
+# LLM Integration
+llm:
+  generative_agent: false      # Use LLM for farmer decisions
+  provider: "together"         # LLM provider ("together" or "openai")
+  model_together: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+  model_openai: "gpt-4o-mini"
+  temperature: 0.7             # Creativity/randomness of LLM responses
+  max_tokens: 100              # Maximum tokens per LLM response
+  
+# Results and Output Configuration
+output:
+  save_csv: true               # Whether to save results to CSV files
+  results_dir: "results"       # Directory to save CSV files
+  include_metadata: true       # Include metadata file with each export
+  export_components:
+    farmer_data: true          # Export individual farmer time series
+    fish_data: true            # Export fish population data
+    water_data: true           # Export water resource data  
+    summary: true              # Export summary statistics
+  provider: "together"         # LLM provider: "together" or "openai"
+  
+# Experimental Scenarios
+scenarios:
+  # Multiple scenarios can be defined here for batch runs
+  default:
+    centralized: false
+    fishing_enabled: false
+    memory_strength: 0
+    
+  centralized_fishing:
+    centralized: true
+    fishing_enabled: true
+    memory_strength: 1
+    
+  llm_together:
+    generative_agent: true
+    llm_provider: "together"
+    years: 5  # Shorter runs for LLM testing
+    
+  llm_openai:
+    generative_agent: true
+    llm_provider: "openai"
+    years: 5  # Shorter runs for LLM testing

@@ -1,0 +1,21 @@
+Simulation Export Metadata
+========================
+Scenario: default
+Export Time: 2025-09-17T18:47:51.148236
+Session Directory: /Users/atrishasarkar/Documents/stratsphere/simulation/WaterUse_Sim/results/default_20250917_184751
+Files Created:
+  - farmer_data: farmer_data.csv
+  - fish_data: fish_data.csv
+  - water_data: water_data.csv
+  - summary: summary.csv
+
+Configuration Parameters:
+  memory_strength: 0
+  centralized: False
+  fishing_enabled: False
+  use_cpr_game: False
+  use_static_game: False
+  generative_agent: False
+  llm_provider: together
+  years: 20
+  inflow_case: 3
