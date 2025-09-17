@@ -1,8 +1,10 @@
 from Simulation.core.abm import Simulation, WaterResource
 import numpy as np
+import os
 from Simulation.core.plots import water_plot, box_plot, box_plot_cv, box_plot_dv, fish_plot, farmer_returns_plot
 from config_loader import load_config
 from csv_exporter import SimulationCSVExporter
+from csv_plots import CSVPlotter, plot_from_latest_results
 
 def create_test_inflows(case):
     if case == "1": # ideal for centralized
@@ -139,22 +141,88 @@ def run_config_based_experiments(save_to_csv=None):
         print(f"Completed {scenario} scenario")
     
     return all_results
+
+def plot_latest_results(show_dashboard=True):
+    """
+    Generate plots from the latest simulation results
+    All plots are automatically saved to the results directory
+    
+    Args:
+        show_dashboard: Whether to show the comprehensive dashboard (default: True)
+                       If False, generates individual plots instead
+    """
+    plotter = CSVPlotter()
+    latest_dir = plotter.get_latest_results_dir()
+    
+    if latest_dir is None:
+        print("No results directory found! Run a simulation first.")
+        return
+    
+    scenario_name = os.path.basename(latest_dir).split('_')[0]
+    print(f"Generating plots from: {latest_dir}")
+    print(f"Scenario: {scenario_name}")
+    
+    if show_dashboard:
+        plotter.comprehensive_dashboard(latest_dir)
+    else:
+        # Generate individual plots (all auto-saved to results directory)
+        plotter.farmer_returns_plot(latest_dir)
+        plotter.water_plot(latest_dir)
+        plotter.fish_plot(latest_dir)
+        plotter.box_plot_yields(latest_dir)
+
+def run_simulation_and_plot(scenario="default", save_csv=None, show_plots=True):
+    """
+    Convenience function to run simulation and immediately generate plots
+    All plots are automatically saved to the results directory
+    
+    Args:
+        scenario: Which scenario to run
+        save_csv: Whether to save CSV data (uses config default if None)
+        show_plots: Whether to generate plots after simulation (default: True)
+    """
+    print(f"=== Running Simulation and Plotting: {scenario} ===")
+    
+    # Run the simulation
+    results = run_simulation_from_config(scenario, save_to_csv=save_csv)
+    
+    if show_plots and save_csv != False:  # Only plot if we have CSV data
+        print(f"\n=== Generating Plots ===")
+        plot_latest_results(show_dashboard=True)
+    
+    return results
     
 if __name__ == "__main__":
-    # Configuration-based simulation runs
-    print("=== Water Use Simulation with Configuration Management ===")
+    # Configuration-based simulation runs with CSV export and plotting
+    print("=== Water Use Simulation with CSV Export and Plotting ===")
     
     # Load configuration
     config = load_config()
     print("Available scenarios:", config.list_scenarios())
     
-    # Option 1: Run a specific scenario from config
-    print("\n--- Running Default Scenario ---")
-    results_default = run_simulation_from_config("default")
+    # Option 1: Run simulation with automatic plotting
+    print("\n--- Running Simulation with Plots ---")
+    results = run_simulation_and_plot("default")
     
-    # Option 2: Run multiple scenarios for comparison
+    # Option 2: Generate plots from existing results
+    print("\n--- Generating Plots from Latest Results ---")
+    plot_latest_results(show_dashboard=True)
+    
+    # Option 3: Run specific scenario and plot
+    #print("\n--- Running Centralized Fishing Scenario ---")
+    #results_fishing = run_simulation_and_plot("centralized_fishing", save_plots=True)
+    
+    # Option 4: Run multiple scenarios for comparison
     #print("\n--- Running Multiple Scenarios ---")
     #run_config_based_experiments()
+    
+    print("\n--- Simulation and Plotting Complete ---")
+    print("Check the current directory for saved plot files:")
+    print("- dashboard_default.png")
+    print("- farmer_returns_default.png") 
+    print("- water_data_default.png")
+    print("- fish_population_default.png")
+    print("- yield_boxplot_default.png")
     
     # Option 3: Traditional experiments (commented out for now)
     """
