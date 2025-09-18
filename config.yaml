@@ -3,7 +3,7 @@
 
 # Simulation Setup
 simulation:
-  years: 20                    # Number of years to simulate
+  years: 100                    # Number of years to simulate
   print_interval: 1            # Print output every N years
   num_farmers: 9               # Number of farmers in the simulation
   
@@ -71,7 +71,7 @@ scenarios:
   # Multiple scenarios can be defined here for batch runs
   default:
     centralized: false
-    fishing_enabled: false
+    fishing_enabled: true
     memory_strength: 0
     
   centralized_fishing:
