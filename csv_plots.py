@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import glob
 from typing import Dict, List, Optional, Tuple
+import math
 
 class CSVPlotter:
     """Class to generate plots from CSV simulation results"""
@@ -385,25 +386,54 @@ class CSVPlotter:
         plt.subplot(2, 3, 5)
         if 'farmer_data' in data:
             farmer_data = data['farmer_data']
-            # Plot average budget over time
-            avg_budget = farmer_data.groupby('year')['budget'].mean()
-            plt.plot(avg_budget.index, avg_budget.values, 'g-o')
+            # Calculate Theil Index of inequality for budget distribution by year
+            def theil_index(values):
+                """Calculate Theil Index (T) for inequality measurement"""
+                values = np.array(values)
+                # Replace negative values with 0 to avoid log issues
+                values = np.where(values < 0, 0.1, values)
+                # Remove only zero values to avoid log issues
+                values = values[values > 0]
+                if len(values) == 0:
+                    return 0
+                mean_val = np.mean(values)
+                if mean_val == 0:
+                    return 0
+                # Theil Index formula: T = (1/n) * sum((x_i/μ) * ln(x_i/μ))
+                ratios = values / mean_val
+                theil = np.mean(ratios * np.log(ratios))
+                return theil
+            
+            theil_by_year = farmer_data.groupby('year')['budget'].apply(theil_index)
+            plt.plot(theil_by_year.index, theil_by_year.values, 'g-o')
             plt.xlabel("Year")
-            plt.ylabel("Average Budget")
-            plt.title("Average Farmer Budget")
+            plt.ylabel("Theil Index")
+            plt.title("Budget Inequality (Theil Index)")
             plt.grid(True, alpha=0.3)
         
         # Summary stats (bottom right)
         plt.subplot(2, 3, 6)
         if 'summary' in data:
             summary = data['summary'].iloc[0]
+            
+            # Parse config_params from string representation
+            try:
+                import ast
+                config_params = ast.literal_eval(summary['config_params'])
+                memory_strength = config_params.get('memory_strength', 'N/A')
+                use_cpr_game = config_params.get('use_cpr_game', 'N/A')
+            except (ValueError, SyntaxError):
+                memory_strength = 'N/A'
+                use_cpr_game = 'N/A'
             stats_text = f"""
             Scenario: {summary['scenario']}
             Years: {summary['years_simulated']}
             Farmers: {summary['num_farmers']}
             Centralized: {summary['centralized']}
             Fishing: {summary['fishing_enabled']}
-            
+            Memory Strength: {memory_strength}
+            CPR Game: {use_cpr_game}
+
             Total Yield: {summary['total_yield']:.1f}
             Avg Final Budget: {summary['avg_final_budget']:.1f}
             Final Fish: {summary['final_fish_total']:.0f}

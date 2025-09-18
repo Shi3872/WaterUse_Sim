@@ -245,7 +245,7 @@ if __name__ == "__main__":
     
     # Option 1: Run simulation with automatic plotting
     print("\n--- Running Simulation with Plots ---")
-    results = run_simulation_and_plot("decentralized_fishing_procedural", save_plots=True)
+    results = run_simulation_and_plot("default", save_plots=True)
     
     # Option 2: Generate plots from existing results
     #print("\n--- Generating Plots from Latest Results ---")

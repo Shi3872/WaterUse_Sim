@@ -70,7 +70,7 @@ class SimulationCSVExporter:
                     'year': year + 1,
                     'farmer_id': farmer_idx + 1,
                     'location': farmer.location,
-                    'irrigated_fields': farmer.irrigated_fields,
+                    'irrigated_fields': farmer.irrigated_fields_history[year] if year < len(farmer.irrigated_fields_history) else 0,
                     'yield': farmer.yield_history[year] if year < len(farmer.yield_history) else 0,
                     'catch': farmer.catch_history[year] if year < len(farmer.catch_history) else 0,
                     'budget': simulation.farmer_budget_history[farmer_idx][year] if year < len(simulation.farmer_budget_history[farmer_idx]) else 0,

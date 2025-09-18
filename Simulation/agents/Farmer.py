@@ -40,6 +40,7 @@ class Farmer:
         self.memory_strength = memory_strength
         self.yield_history = []
         self.catch_history = []
+        self.irrigated_fields_history = []
         self.budget = FARMER_INITIAL_BUDGET
         self.min_income = min_income
         self.planned_fields = self.irrigated_fields
@@ -148,7 +149,7 @@ Given this information, how many fields do you want to irrigate this season? Pro
         try:
             # Make API call with structured output
             response = client.chat.completions.create(
-                model="meta-llama/Llama-3.3-70B-Instruct-Turbo",
+                model="Qwen/QwQ-32B",
                 messages=[
                     {
                         "role": "system",
@@ -307,6 +308,8 @@ Given this information, how many fields do you want to irrigate this season? Pro
 
         if centralized: # Farmers keep ONLY fishing income
             net_return = fish_catch * FISH_INCOME_SCALE # net return per farmer
+            income = field_yield + fish_catch * FISH_INCOME_SCALE
+            net_return = income - (self.irrigated_fields * IRRIGATION_COST) - CONSUMPTION_COST
             authority_yield = field_yield
             authority_irrigation_cost = self.irrigated_fields * IRRIGATION_COST
             authority_consumption_cost = CONSUMPTION_COST
@@ -320,6 +323,7 @@ Given this information, how many fields do you want to irrigate this season? Pro
         self.budget += net_return
         self.yield_history.append(field_yield) # total yield (not per field)
         self.catch_history.append(fish_catch)
+        self.irrigated_fields_history.append(self.irrigated_fields)
 
         # Update water satisfaction memory (average over the season)
         total_demand = self.irrigated_fields * 12

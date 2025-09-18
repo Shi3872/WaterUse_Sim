@@ -70,9 +70,11 @@ output:
 scenarios:
   # Multiple scenarios can be defined here for batch runs
   default:
-    centralized: true
+    centralized: false
     fishing_enabled: true
-    memory_strength: 0
+    memory_strength: 1
+    generative_agent: true
+    use_cpr_game: false
     
   centralized_fishing:
     centralized: true
@@ -90,6 +92,12 @@ scenarios:
     years: 5  # Shorter runs for LLM testing
   
   decentralized_fishing_procedural:
+    centralized: false
+    fishing_enabled: true
+    memory_strength: 1
+    generative_agent: false
+
+  centralized_fishing_procedural:
     centralized: true
     fishing_enabled: true
     memory_strength: 1
