@@ -70,7 +70,7 @@ output:
 scenarios:
   # Multiple scenarios can be defined here for batch runs
   default:
-    centralized: false
+    centralized: true
     fishing_enabled: true
     memory_strength: 0
     
@@ -88,3 +88,10 @@ scenarios:
     generative_agent: true
     llm_provider: "openai"
     years: 5  # Shorter runs for LLM testing
+  
+  decentralized_fishing_procedural:
+    centralized: true
+    fishing_enabled: true
+    memory_strength: 1
+    generative_agent: false
+    

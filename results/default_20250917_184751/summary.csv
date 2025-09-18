@@ -1,2 +1,0 @@
-scenario,timestamp,num_farmers,years_simulated,centralized,fishing_enabled,total_yield,avg_yield_per_farmer,avg_yield_per_year,total_catch,avg_catch_per_farmer,final_fish_total,avg_fish_population,avg_final_budget,config_params
-default,2025-09-17T18:47:51.148103,9,20,False,False,5367.01,596.3344444444444,268.3505,0,0.0,812,541.0,245.66777777777781,"{'memory_strength': 0, 'centralized': False, 'fishing_enabled': False, 'use_cpr_game': False, 'use_static_game': False, 'generative_agent': False, 'llm_provider': 'together', 'years': 20, 'inflow_case': '3'}"

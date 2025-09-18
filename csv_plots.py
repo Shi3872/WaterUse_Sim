@@ -332,13 +332,18 @@ class CSVPlotter:
         plt.subplot(2, 3, 1)
         if 'farmer_data' in data:
             farmer_data = data['farmer_data']
-            farmer_9 = farmer_data[farmer_data['farmer_id'] == 9]
-            if not farmer_9.empty:
-                plt.plot(farmer_9['year'], farmer_9['budget'], 'o-')
-                plt.xlabel("Year")
-                plt.ylabel("Budget")
-                plt.title("Farmer 9 Returns")
-                plt.grid(True, alpha=0.3)
+            # Plot all farmers as individual lines
+            farmer_ids = sorted(farmer_data['farmer_id'].unique())
+            for farmer_id in farmer_ids:
+                farmer_budget = farmer_data[farmer_data['farmer_id'] == farmer_id]
+                if not farmer_budget.empty:
+                    plt.plot(farmer_budget['year'], farmer_budget['budget'], '-', 
+                            label=f'Farmer {farmer_id}', markersize=3, linewidth=1)
+            plt.xlabel("Year")
+            plt.ylabel("Budget")
+            plt.title("All Farmers' Budget Returns")
+            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+            plt.grid(True, alpha=0.3)
         
         # Water inflows (top middle)
         plt.subplot(2, 3, 2)

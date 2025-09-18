@@ -77,7 +77,7 @@ class SimulationConfig:
         }
         
         # Override with scenario-specific parameters if specified
-        if scenario != "default" and scenario in self.config['scenarios']:
+        if scenario in self.config['scenarios']:
             scenario_params = self.config['scenarios'][scenario]
             params.update(scenario_params)
         

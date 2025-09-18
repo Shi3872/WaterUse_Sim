@@ -36,7 +36,24 @@ def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=Fals
         sim.water = WaterResource(inflows)
         sim.run()
 
+    yields = [f.yield_history for f in sim.farmers]
+    results.append(np.array(yields).T)
+    avg_yield = np.mean(results, axis=0)
+
+    # Fish
+    adult_fish = [sum(ac[5:]) for ac in sim.fish_history] # adult classes 5+
+    larvae_inflow = [ac[0] for ac in sim.fish_history] # l 
+    avg_adults = np.mean(adult_fish)
+    avg_larvae = np.mean(larvae_inflow)
+
+    total_catch = [sum(f.catch_history) for f in sim.farmers]
+    mean_catch = np.mean(total_catch) if fishing_enabled else 0
+
+    # Farmer 9 returns
+    farmer9_returns = sim.farmer_budget_history[8]
+    
     # Export to CSV if requested
+    session_dir = None  # Track the CSV export session directory
     if save_to_csv:
         exporter = SimulationCSVExporter()
         config_params = {
@@ -51,12 +68,16 @@ def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=Fals
             'inflow_case': inflow_case
         }
         csv_files = exporter.export_all_data(sim, scenario_name, config_params)
-        print(f"CSV files saved to: {exporter.session_dir}")
+        session_dir = exporter.session_dir  # Capture the session directory
+        print(f"CSV files saved to: {session_dir}")
         for data_type, file_path in csv_files.items():
             print(f"  - {data_type}: {file_path}")
 
     if return_sim:
-        return sim
+        if save_to_csv:
+            return sim, session_dir
+        else:
+            return sim
     
     # Crop yields
     yields = [f.yield_history for f in sim.farmers]
@@ -75,7 +96,11 @@ def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=Fals
     # Farmer 9 returns
     farmer9_returns = sim.farmer_budget_history[8]
 
-    return avg_yield, avg_adults, avg_larvae, mean_catch, farmer9_returns
+    # Return results with session directory if CSV was saved
+    if save_to_csv:
+        return avg_yield, avg_adults, avg_larvae, mean_catch, farmer9_returns, session_dir
+    else:
+        return avg_yield, avg_adults, avg_larvae, mean_catch, farmer9_returns
 
 def run_simulation_from_config(scenario="default", config_path="config.yaml", save_to_csv=None):
     """
@@ -116,7 +141,14 @@ def run_simulation_from_config(scenario="default", config_path="config.yaml", sa
         scenario_name=scenario
     )
     
-    return results
+    # If CSV was saved, results will include the session directory as the last element
+    if save_to_csv and len(results) == 6:
+        # Extract session directory from results
+        session_dir = results[-1]
+        simulation_results = results[:-1]
+        return simulation_results, session_dir
+    else:
+        return results, None
 
 def run_config_based_experiments(save_to_csv=None):
     """Run experiments based on different scenarios in config"""
@@ -142,17 +174,23 @@ def run_config_based_experiments(save_to_csv=None):
     
     return all_results
 
-def plot_latest_results(show_dashboard=True):
+def plot_latest_results(show_dashboard=True, results_dir=None):
     """
-    Generate plots from the latest simulation results
+    Generate plots from simulation results
     All plots are automatically saved to the results directory
     
     Args:
         show_dashboard: Whether to show the comprehensive dashboard (default: True)
                        If False, generates individual plots instead
+        results_dir: Specific results directory to use. If None, uses latest directory
     """
     plotter = CSVPlotter()
-    latest_dir = plotter.get_latest_results_dir()
+    
+    # Use provided results directory or find the latest one
+    if results_dir is not None:
+        latest_dir = results_dir
+    else:
+        latest_dir = plotter.get_latest_results_dir()
     
     if latest_dir is None:
         print("No results directory found! Run a simulation first.")
@@ -171,7 +209,7 @@ def plot_latest_results(show_dashboard=True):
         plotter.fish_plot(latest_dir)
         plotter.box_plot_yields(latest_dir)
 
-def run_simulation_and_plot(scenario="default", save_csv=None, show_plots=True):
+def run_simulation_and_plot(scenario="default", save_csv=None, save_plots=True):
     """
     Convenience function to run simulation and immediately generate plots
     All plots are automatically saved to the results directory
@@ -184,11 +222,16 @@ def run_simulation_and_plot(scenario="default", save_csv=None, show_plots=True):
     print(f"=== Running Simulation and Plotting: {scenario} ===")
     
     # Run the simulation
-    results = run_simulation_from_config(scenario, save_to_csv=save_csv)
+    results, session_dir = run_simulation_from_config(scenario, save_to_csv=save_csv)
     
-    if show_plots and save_csv != False:  # Only plot if we have CSV data
+    if save_plots and save_csv != False:  # Only plot if we have CSV data
         print(f"\n=== Generating Plots ===")
-        plot_latest_results(show_dashboard=True)
+        if session_dir:
+            # Use the specific session directory created by the CSV exporter
+            plot_latest_results(show_dashboard=True, results_dir=session_dir)
+        else:
+            # Fallback to finding latest directory
+            plot_latest_results(show_dashboard=True)
     
     return results
     
@@ -202,11 +245,11 @@ if __name__ == "__main__":
     
     # Option 1: Run simulation with automatic plotting
     print("\n--- Running Simulation with Plots ---")
-    results = run_simulation_and_plot("default")
+    results = run_simulation_and_plot("decentralized_fishing_procedural", save_plots=True)
     
     # Option 2: Generate plots from existing results
-    print("\n--- Generating Plots from Latest Results ---")
-    plot_latest_results(show_dashboard=True)
+    #print("\n--- Generating Plots from Latest Results ---")
+    #plot_latest_results(show_dashboard=True)
     
     # Option 3: Run specific scenario and plot
     #print("\n--- Running Centralized Fishing Scenario ---")
