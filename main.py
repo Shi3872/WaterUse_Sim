@@ -21,16 +21,17 @@ def create_test_inflows(case):
         31170.0, 20301.0, 14360.0, 34220.0,
     ]* 100)
     else:
-        return np.random.uniform(5000, 40000, 200)  # default random inflow
+        return np.random.uniform(16000, 46000, 100)  # default random inflow
 
-def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=False, return_sim = False, use_cpr_game=False, use_static_game=False, generative_agent=False, llm_provider="together", years=20, inflow_case="3", save_to_csv=False, scenario_name="default"):
+def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=False, return_sim = False, use_cpr_game=False, use_static_game=False, generative_agent=False, \
+                      llm_provider="together", years=20, inflow_case="3", use_fishing_cpr=False, save_to_csv=False, scenario_name="default"):
     results = []
     inflows = create_test_inflows(inflow_case)
 
     for _ in range(1):
         sim = Simulation(years=years, centralized=centralized, fishing_enabled=fishing_enabled, print_interval=1,
                         memory_strength=memory_strength, use_cpr_game=use_cpr_game, use_static_game=use_static_game, 
-                        generative_agent=generative_agent, llm_provider=llm_provider)
+                        generative_agent=generative_agent, llm_provider=llm_provider, use_fishing_cpr=use_fishing_cpr)
         for f in sim.farmers:
             f.memory_strength = memory_strength
         sim.water = WaterResource(inflows)
@@ -62,6 +63,7 @@ def run_multiple_sims(memory_strength=0, centralized=False, fishing_enabled=Fals
             'fishing_enabled': fishing_enabled,
             'use_cpr_game': use_cpr_game,
             'use_static_game': use_static_game,
+            'fishing_cpr': use_fishing_cpr,
             'generative_agent': generative_agent,
             'llm_provider': llm_provider,
             'years': years,
@@ -137,6 +139,7 @@ def run_simulation_from_config(scenario="default", config_path="config.yaml", sa
         llm_provider=params['llm_provider'],
         years=params['years'],
         inflow_case=params['inflow_case'],
+        use_fishing_cpr=params['fishing_cpr'],
         save_to_csv=save_to_csv,
         scenario_name=scenario
     )
@@ -267,80 +270,3 @@ if __name__ == "__main__":
     print("- fish_population_default.png")
     print("- yield_boxplot_default.png")
     
-    # Option 3: Traditional experiments (commented out for now)
-    """
-    # Uncomment this section to run the original experimental setup
-    
-    inflows = create_test_inflows("1")  # change case here
-
-    #fish plot
-    deltas = np.linspace(0, 1, 11)
-
-    central_adults, central_larvae = [], []
-    dec_nf_adults, dec_nf_larvae = [], []
-    dec_f_adults, dec_f_larvae, dec_f_catch = [], [], []
-
-    for d in deltas:
-        print("\n-----------------------Centralized no fishing-----------------")
-        _, a, l, _, _ = run_multiple_sims(d, centralized=True, fishing_enabled=False)
-        central_adults.append(a)
-        central_larvae.append(l)
-
-        print("'\n -----------------------Decentralized with fishing-----------------")
-        _, a, l, c, _ = run_multiple_sims(d, centralized=False, fishing_enabled=True)
-        dec_f_adults.append(a)
-        dec_f_larvae.append(l)
-        dec_f_catch.append(c)
-
-        print("\n -----------------------Decentralized no fishing-----------------")
-        _, a, l, _, _ = run_multiple_sims(d, centralized=False, fishing_enabled=False)
-        dec_nf_adults.append(a)
-        dec_nf_larvae.append(l)
-
-    fish_plot(deltas, central_adults, central_larvae, dec_nf_adults, dec_nf_larvae, dec_f_adults, dec_f_larvae, dec_f_catch)
-    
-    #farmer 9 plot
-    deltas = [0, 1]
-    results_by_delta = {}
-
-    for d in deltas:
-        _, _, _, _, farmer9_returns = run_multiple_sims(d, centralized=False, fishing_enabled=True)
-        results_by_delta[d] = farmer9_returns 
-        
-    farmer_returns_plot(results_by_delta)
-    
-    
-    sim_delta0 = run_multiple_sims(memory_strength=0, centralized=True, return_sim=True)
-    sim_delta1 = run_multiple_sims(memory_strength=1, centralized=True, return_sim=True)
-    water_plot(sim_delta0, sim_delta1)
-
-    # box plot
-    results_delta0 = run_multiple_sims(memory_strength=0, centralized= False)
-    results_delta1 = run_multiple_sims(memory_strength=1)
-    results_static_cpr = run_multiple_sims(use_cpr_game=True, use_static_game=True)
-    results_complex_cpr = run_multiple_sims(use_cpr_game=True, use_static_game=False)
-
-
-    results_decentralized = {
-    "Heuristics delta 0": results_delta0[0],
-    "Static CPR": results_static_cpr[0],
-    "Heuristics delta 1": results_delta1[0],
-    "Complex CPR": results_complex_cpr[0],
-    }
-
-    box_plot_dv(results_decentralized)
-
-    # box plot
-    #results_delta0 = run_multiple_sims(memory_strength=0, centralized= True)
-    results_delta1 = run_multiple_sims(memory_strength=1, centralized=True)
-    results_complex_cpr = run_multiple_sims(centralized=True, use_cpr_game=True)
-    
-    
-    results_centralized = {
-    #"Heuristics delta 0": results_delta0[0],
-    "Heuristics delta 1": results_delta1[0],
-    "Complex CPR": results_complex_cpr[0],
-    }
-
-    box_plot_cv(results_centralized)
-    """

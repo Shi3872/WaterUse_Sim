@@ -122,29 +122,29 @@ class Farmer:
         
         # Create the prompt
         prompt = f"""You are a farmer agent deciding how many fields to irrigate this season.
-Your decision affects not only your own harvest but also the availability of water for farmers located downstream along the river. The more water you use, the less water remains for others.
+                                Your decision affects not only your own harvest but also the availability of water for farmers located downstream along the river. The more water you use, the less water remains for others.
 
-Context:
+                                Context:
 
-Your location along the river: {self.location}
+                                Your location along the river: {self.location}
 
-Current budget: {self.budget:.2f}
+                                Current budget: {self.budget:.2f}
 
-Maximum number of fields possible: {max_fields}
+                                Maximum number of fields possible: {max_fields}
 
-Predicted water availability at your location: {predicted_water:.2f}
+                                Predicted water availability at your location: {predicted_water:.2f}
 
-Observed water received last year: {water_received_last_year:.2f}
+                                Observed water received last year: {water_received_last_year:.2f}
 
-Total number of farmers along the river: {num_farmers}
+                                Total number of farmers along the river: {num_farmers}
 
-Your position relative to downstream farmers: {relative_position}
+                                Your position relative to downstream farmers: {relative_position}
 
-Reminder:
-Water is a common-pool resource. If you irrigate more fields, you increase your own potential yield but reduce water availability for downstream farmers.
+                                Reminder:
+                                Water is a common-pool resource. If you irrigate more fields, you increase your own potential yield but reduce water availability for downstream farmers.
 
-Question:
-Given this information, how many fields do you want to irrigate this season? Provide your decision and reasoning."""
+                                Question:
+                                Given this information, how many fields do you want to irrigate this season? Provide your decision and reasoning."""
 
         try:
             # Make API call with structured output

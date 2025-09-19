@@ -29,6 +29,7 @@ fields:
 # Fish Population
 fish:
   larvae_inflow_threshold: 2000 # Minimum inflow for larvae survival
+  fishing_cpr: false         # Use CPR logic for fishing activities
   
 # Agent Behavior
 agents:
@@ -70,11 +71,13 @@ output:
 scenarios:
   # Multiple scenarios can be defined here for batch runs
   default:
-    centralized: false
+    centralized: true
     fishing_enabled: true
     memory_strength: 1
-    generative_agent: true
+    generative_agent: false
     use_cpr_game: false
+    fishing_cpr: false
+    inflow_case: "4"
     
   centralized_fishing:
     centralized: true

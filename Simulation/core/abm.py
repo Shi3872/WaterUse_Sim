@@ -16,6 +16,7 @@ LARVAE_INFLOW_THRESHOLD = 2000
 AUTHORITY_INITIAL_BUDGET = 1800
 CONSUMPTION_COST = 15 # annual
 IRRIGATION_COST = 6
+DEFAULT_TARGET_CATCH = 20
 
 # ---------------------------
 
@@ -33,7 +34,7 @@ class WaterResource:
         return np.zeros(12) # return an array of 12 values
 
 class Simulation:
-    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, memory_strength=0, use_cpr_game = False, use_static_game = False, generative_agent=False, llm_provider="together"):
+    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, memory_strength=0, use_cpr_game = False, use_static_game = False, generative_agent=False, llm_provider="together", use_fishing_cpr=False):
         self.years = years
         self.farmers = [Farmer(location=i, memory_strength=1, min_income=30) for i in range(9)]
         for f in self.farmers:
@@ -54,6 +55,7 @@ class Simulation:
         self.use_static_game = use_static_game
         self.generative_agent = generative_agent
         self.llm_provider = llm_provider
+        self.use_fishing_cpr = use_fishing_cpr
 
     def centralized_game(self, monthly_inflows):
             n_farmers = len(self.farmers)
@@ -102,6 +104,49 @@ class Simulation:
 
                 for f in self.farmers:
                     f.irrigated_fields = final_alloc
+                    
+    def fishing_cpr_game(self):
+        """
+        Play fishing Common Pool Resource games between farmer pairs
+        Returns a dictionary mapping farmer locations to target catch strategies
+        """
+        fishing_strategies = {}
+        
+        # Pair farmers and play CPR games
+        for i in range(len(self.farmers) - 1):
+            uf = self.farmers[i]
+            df = self.farmers[i + 1]
+            
+            # Create fishing CPR payoff matrix
+            # Strategies: different catch levels (e.g., 10, 15, 20, 25, 30)
+            catch_levels = np.arange(0, DEFAULT_TARGET_CATCH+1, 5)
+            payoffs = []
+            payoff_scale_factor, congestion_factor = 3.0, 0.1
+            for uf_catch in catch_levels:
+                row = []
+                for df_catch in catch_levels:
+                    # Simple model: fish catch reduces fish population, affecting income
+                    
+                    uf_utility = payoff_scale_factor * uf_catch - congestion_factor*(uf_catch + df_catch)*uf_catch
+                    df_utility = payoff_scale_factor * df_catch - congestion_factor*(uf_catch + df_catch)*df_catch
+
+                    row.append((uf_utility, df_utility))
+                payoffs.append(row)
+            
+            # Solve the fishing CPR game
+            equilibria = solve_game(payoffs, player_labels=("UF_Fish", "DF_Fish"))
+            
+            if equilibria:
+                eq = np.random.choice(equilibria)
+                
+                uf_choice = np.random.choice(catch_levels, p=eq["UF_Fish"])
+                df_choice = np.random.choice(catch_levels, p=eq["DF_Fish"])
+                
+                fishing_strategies[uf.location] = uf_choice
+                fishing_strategies[df.location] = df_choice
+        
+        return fishing_strategies
+
     def decentralized_game(self, monthly_inflows):
         remaining_water = sum(monthly_inflows)
         for i in range(len(self.farmers) - 1):
@@ -288,15 +333,34 @@ class Simulation:
             total_irrigation = 0
             total_consumption = 0
 
-            for farmer in sorted(self.farmers, key=lambda f: -f.location):
-                if getattr(farmer, 'fishing_enabled', True):
-                    fish_catch = self.fish.harvest(target_catch=20)
-                else:
-                    fish_catch = 0
-                y, ci, cc = farmer.update_budget_and_yield(fish_catch=fish_catch, centralized=self.centralized)
-                total_yield += y
-                total_irrigation += ci
-                total_consumption += cc
+            # Fishing logic - either CPR game or fixed target catch
+            if self.use_fishing_cpr and self.fishing_enabled:
+                # Play fishing CPR games between farmer pairs
+                fishing_strategies = self.fishing_cpr_game()
+                
+                # Apply fishing strategies and harvest
+                for farmer in sorted(self.farmers, key=lambda f: -f.location):
+                    if getattr(farmer, 'fishing_enabled', True):
+                        target_catch = fishing_strategies.get(farmer.location, DEFAULT_TARGET_CATCH)  # default if not in game
+                        fish_catch = self.fish.harvest(target_catch)
+                    else:
+                        fish_catch = 0
+                    y, ci, cc = farmer.update_budget_and_yield(fish_catch=fish_catch, centralized=self.centralized)
+                    total_yield += y
+                    total_irrigation += ci
+                    total_consumption += cc
+            else:
+                # Original fishing logic - fixed target catch
+                for farmer in sorted(self.farmers, key=lambda f: -f.location):
+                    if getattr(farmer, 'fishing_enabled', True):
+                        target_catch = DEFAULT_TARGET_CATCH
+                        fish_catch = self.fish.harvest(target_catch)
+                    else:
+                        fish_catch = 0
+                    y, ci, cc = farmer.update_budget_and_yield(fish_catch=fish_catch, centralized=self.centralized)
+                    total_yield += y
+                    total_irrigation += ci
+                    total_consumption += cc
 
             for i, f in enumerate(self.farmers): # append budget
                     self.farmer_budget_history[i].append(f.budget)
