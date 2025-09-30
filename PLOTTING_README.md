@@ -189,3 +189,127 @@ matplotlib.use('Agg')
 ```
 
 This new plotting system provides the same visualization capabilities as the original implementation while adding data persistence and improved flexibility for analysis.
+
+## Individual Plot Extraction Utility
+
+**NEW**: Extract individual plots from the comprehensive dashboard as separate PDF or PNG files.
+
+### Interactive Mode (Recommended)
+
+Run the interactive plot extractor:
+```bash
+python csv_plots.py
+```
+
+This launches a user-friendly interface with guided prompts:
+
+```
+CSV Plotter Utility
+====================
+1. Interactive plot extractor
+2. Show help  
+3. List available plots
+4. Quick test (extract farmer_budgets from most recent folder)
+
+Enter your choice: 1
+
+📁 Available results folders (5 found):
+  1. generative agent (qwen-32B)
+  2. centralized
+  3. cpr_pigouvian  
+  4. procedural_ABM
+  5. cpr_tragedy
+
+🔍 Select a results folder: cpr
+
+📂 Found matching folder: cpr_tragedy
+
+📊 Available plot types:
+  1. farmer_budgets - Farmer Budget Returns
+  2. water_inflows - Water Inflows  
+  3. fish_population - Fish Population
+  4. activity_breakdown - Activity Breakdown
+  5. all - Extract all plots
+
+🎨 Select plot type(s): all
+
+💾 Choose output format:
+  1. PDF (high quality, recommended)
+  2. PNG (web-friendly)
+Your choice: 1
+
+🚀 Starting extraction...
+📊 Extracting farmer_budgets... ✅
+📊 Extracting water_inflows... ✅  
+📊 Extracting fish_population... ✅
+📊 Extracting activity_breakdown... ✅
+
+🎉 Successfully extracted 7/7 plots!
+📁 Files saved to: results/cpr_tragedy/
+```
+
+### Command Line Interface
+
+For programmatic use:
+```python
+from csv_plots import extract_plot, list_available_plots
+
+# List all available plot types
+list_available_plots()
+
+# Extract specific plots
+extract_plot("cpr_tragedy", "farmer_budgets", save_as_pdf=True)
+extract_plot("centralized", "activity_breakdown", save_as_pdf=False)
+extract_plot("scenario_folder", "water_inflows")
+
+# Quick extraction of all plots
+plot_types = ['farmer_budgets', 'water_inflows', 'fish_population', 
+              'yield_distribution', 'budget_inequality', 'activity_breakdown', 'summary_stats']
+              
+for plot_type in plot_types:
+    extract_plot("my_scenario", plot_type, save_as_pdf=True)
+```
+
+### Available Plot Types for Extraction
+
+1. **`farmer_budgets`** - Farmer Budget Returns (with confidence intervals if multi-run data available)
+2. **`water_inflows`** - Water Inflows (annual and July)
+3. **`fish_population`** - Fish Population (adults and larvae)
+4. **`yield_distribution`** - Yield Distribution (box plot)
+5. **`budget_inequality`** - Budget Inequality (Theil Index with confidence intervals)
+6. **`activity_breakdown`** - Activity Breakdown (stacked bar chart showing farmer activity distribution)
+7. **`summary_stats`** - Summary Statistics (text summary)
+
+### Output Features
+
+- **Smart folder matching**: Use partial folder names (e.g., "cpr" matches "cpr_tragedy")
+- **Multiple formats**: PDF (high quality) or PNG (web-friendly)
+- **Descriptive filenames**: `farmer_budgets_scenario.pdf`, `activity_breakdown_scenario.png`
+- **Automatic titles**: Plot titles include the scenario name
+- **File size reporting**: Shows created file sizes for verification
+
+### Use Cases
+
+- **Research presentations**: Extract high-quality PDFs for papers and presentations
+- **Web content**: Generate PNG files for websites and reports
+- **Comparative analysis**: Extract the same plot type from multiple scenarios
+- **Custom dashboards**: Build focused visualizations with specific plots
+- **Data sharing**: Share individual charts without full dashboard complexity
+
+### Quick Commands
+
+```bash
+# Interactive mode (recommended for first-time users)
+python csv_plots.py
+
+# Help and documentation
+echo "2" | python csv_plots.py
+
+# Quick test
+echo "4" | python csv_plots.py
+
+# List available plots
+echo "3" | python csv_plots.py
+```
+
+The extraction utility preserves all styling, confidence intervals, and data relationships from the original dashboard while providing focused, publication-ready individual plots.

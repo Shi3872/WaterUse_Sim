@@ -4,6 +4,31 @@ from Simulation.agents.Authority import NationalAuthority
 from Simulation.agents.Fish import FishPopulation
 from Simulation.solver import generate_dv_matrix, generate_cv_matrix, solve_game
 import math
+from together import Together
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+import json
+import importlib.util
+from pydantic import BaseModel, Field
+
+# Load environment variables
+load_dotenv()
+
+# Define the schema for game theory decision
+class GameDecision(BaseModel):
+    strategy_choice: str = Field(
+        description="Choose either 'L' for Low irrigation (conservative) or 'H' for High irrigation (aggressive)",
+        pattern="^[LH]$"
+    )
+    fields_to_irrigate: int = Field(
+        description="Number of fields to irrigate (integer between 0 and 10)",
+        ge=0,
+        le=10
+    )
+    reasoning: str = Field(
+        description="Brief explanation for the irrigation strategy choice"
+    )
 
 # ---------------------------
 # Parameters
@@ -21,20 +46,41 @@ DEFAULT_TARGET_CATCH = 20
 # ---------------------------
 
 class WaterResource:
-    def __init__(self, inflow_series):
+    def __init__(self, inflow_series, inflow_case="3"):
         self.inflow_series = inflow_series
         self.index = 0 # keep track of year sim is currently on
+        self.inflow_case = inflow_case
 
     def next_year_inflow(self): # called once per year to get monthly inflow values
         if self.index < len(self.inflow_series):
             annual_inflow = self.inflow_series[self.index]
             self.index += 1
-            monthly_inflows = np.full(12, annual_inflow / 12.0) #divide annual inflow across 12 months
-            return monthly_inflows
-        return np.zeros(12) # return an array of 12 values
+            
+            if self.inflow_case == "4":
+                # For case 4: start with annual_inflow/12 and gradually decline to 15000
+                first_month_flow = annual_inflow / 12.0
+                final_month_flow = 1250
+                
+                # Create a gradual decline with some randomness
+                #np.random.seed(self.index)  # Use index for consistent randomness per year
+                
+                # Base linear decline
+                base_decline = np.linspace(first_month_flow, final_month_flow, 12)
+
+                # Add random variation (±20% of the decline amount)
+                variation_factor = 0.2
+                random_variations = np.random.normal(0, variation_factor, 12)
+                decline_amount = first_month_flow - final_month_flow
+
+                monthly_inflows = base_decline + (random_variations * decline_amount)
+                return monthly_inflows
+            else:
+                # Original behavior for other cases
+                monthly_inflows = np.full(12, annual_inflow / 12.0) #divide annual inflow across 12 months
+                return monthly_inflows
 
 class Simulation:
-    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, memory_strength=0, use_cpr_game = False, use_static_game = False, generative_agent=False, llm_provider="together", use_fishing_cpr=False):
+    def __init__(self, years=10, centralized=False, fishing_enabled=True, print_interval=1, memory_strength=0, use_cpr_game = False, use_static_game = False, generative_agent=False, llm_provider="together", use_fishing_cpr=False, simulate_tragedy=True):
         self.years = years
         self.farmers = [Farmer(location=i, memory_strength=1, min_income=30) for i in range(9)]
         for f in self.farmers:
@@ -56,6 +102,7 @@ class Simulation:
         self.generative_agent = generative_agent
         self.llm_provider = llm_provider
         self.use_fishing_cpr = use_fishing_cpr
+        self.simulate_tragedy = simulate_tragedy
 
     def centralized_game(self, monthly_inflows):
             n_farmers = len(self.farmers)
@@ -126,9 +173,12 @@ class Simulation:
                 row = []
                 for df_catch in catch_levels:
                     # Simple model: fish catch reduces fish population, affecting income
-                    
-                    uf_utility = payoff_scale_factor * uf_catch - congestion_factor*(uf_catch + df_catch)*uf_catch
-                    df_utility = payoff_scale_factor * df_catch - congestion_factor*(uf_catch + df_catch)*df_catch
+                    if not self.simulate_tragedy:
+                        uf_utility = payoff_scale_factor * uf_catch - congestion_factor*(uf_catch + df_catch)*uf_catch
+                        df_utility = payoff_scale_factor * df_catch - congestion_factor*(uf_catch + df_catch)*df_catch
+                    else:
+                        uf_utility = payoff_scale_factor * uf_catch
+                        df_utility = payoff_scale_factor * df_catch
 
                     row.append((uf_utility, df_utility))
                 payoffs.append(row)
@@ -146,6 +196,231 @@ class Simulation:
                 fishing_strategies[df.location] = df_choice
         
         return fishing_strategies
+
+    def _make_llm_game_decisions(self, uf, df, uf_fish_income, df_fish_income, total_water):
+        """
+        Use LLM to make game theory decisions for two farmers.
+        Reads pre-generated payoff matrices from file.
+        Returns tuple of (uf_choice, df_choice) as field counts
+        """
+        # Load payoff matrices using DeepSeek-V3 function
+        payoff_matrix_display = self._load_payoff_matrix_from_deepseek()
+        
+        # Make decisions for both farmers using the loaded matrix
+        uf_choice = self._get_farmer_llm_decision(uf, df, uf_fish_income, total_water, payoff_matrix_display, "upstream")
+        df_choice = self._get_farmer_llm_decision(df, uf, df_fish_income, total_water, payoff_matrix_display, "downstream")
+        
+        return uf_choice, df_choice
+    
+    def _load_payoff_matrix_from_deepseek(self):
+        """
+        Load irrigation payoff matrix using DeepSeek-V3 extract_upstream_downstream_matrix function.
+        """
+        try:
+            # Import DeepSeek-V3 module dynamically
+            deepseek_path = os.path.join(os.path.dirname(__file__), '..', '..', 'LLM_Prompting', 'Together', 'DeepSeek-V3.py')
+            spec = importlib.util.spec_from_file_location("deepseek_v3", deepseek_path)
+            deepseek_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(deepseek_module)
+            
+            # Use the new extract_upstream_downstream_matrix function
+            matrices_file = os.path.join(os.path.dirname(__file__), '..', '..', 'LLM_Prompting', 'Txts', 'game_matrices.txt')
+            upstream_downstream_scenario = deepseek_module.extract_upstream_downstream_matrix(file_path=matrices_file)
+            
+            print(f"Loaded Pydantic scenario: {upstream_downstream_scenario.title}")
+            
+            # Convert Pydantic model to display format
+            return self._format_pydantic_payoff_matrix_for_display(upstream_downstream_scenario)
+                
+        except Exception as e:
+            raise RuntimeError(f"Error loading payoff matrices using DeepSeek-V3: {e}")
+    
+    def _format_pydantic_payoff_matrix_for_display(self, action_situation):
+        """
+        Convert Pydantic ActionSituation model to display format for LLM prompts.
+        """
+        try:
+            # Extract payoffs from Pydantic model
+            payoffs = action_situation.payoff_matrix
+            actions = action_situation.actions
+            
+            # Get action names (first two actions for each player)
+            player1_actions = actions.player1[:2] if len(actions.player1) >= 2 else ["Low", "High"]
+            player2_actions = actions.player2[:2] if len(actions.player2) >= 2 else ["Low", "High"]
+            
+            # Map to L/H for simplicity
+            action1_short = "L"  # First action (typically conservative)
+            action2_short = "H"  # Second action (typically aggressive)
+            
+            # Extract payoffs from Pydantic structure
+            ll_payoff = payoffs.action1_action1  # Both choose first action
+            lh_payoff = payoffs.action1_action2  # Player1 first, Player2 second
+            hl_payoff = payoffs.action2_action1  # Player1 second, Player2 first
+            hh_payoff = payoffs.action2_action2  # Both choose second action
+            
+            return f"""
+        Payoff Matrix (Your Payoff, Other's Payoff):
+        
+                    Other Farmer
+                    L     H
+        You    L   {ll_payoff} {lh_payoff}
+               H   {hl_payoff} {hh_payoff}
+        
+        L = {player1_actions[0]} (conservative)
+        H = {player1_actions[1]} (aggressive)
+        
+        Scenario: {action_situation.title}
+        Strategic Core: {action_situation.strategic_core}
+        """
+        except Exception as e:
+            raise RuntimeError(f"Error formatting Pydantic payoff matrix: {e}")
+    
+    def _get_farmer_llm_decision(self, farmer, other_farmer, fish_income, total_water, payoff_matrix, position):
+        """
+        Get LLM decision for a single farmer in a game theory context
+        """
+        provider = self.llm_provider if hasattr(self, 'llm_provider') else "together"
+        
+        if provider.lower() == "openai":
+            return self._get_farmer_decision_openai(farmer, other_farmer, fish_income, total_water, payoff_matrix, position)
+        else:
+            return self._get_farmer_decision_together(farmer, other_farmer, fish_income, total_water, payoff_matrix, position)
+    
+    def _get_farmer_decision_together(self, farmer, other_farmer, fish_income, total_water, payoff_matrix, position):
+        """Use Together AI for game theory decision"""
+        api_key = os.getenv("TOGETHER_API_KEY")
+        if not api_key:
+            print("TOGETHER_API_KEY not found, falling back to random choice.")
+            return np.random.choice([6, 10])  # Random L or H choice
+            
+        client = Together(api_key=api_key)
+        
+        prompt = f"""You are Farmer {farmer.location} making an irrigation decision in a strategic setting with Farmer {other_farmer.location}.
+
+            Context:
+            - Your current budget: {farmer.budget:.2f}
+            - Other farmer's budget: {other_farmer.budget:.2f}
+            - Your fish income: {fish_income:.2f}
+            - Total water available: {total_water:.2f}
+            - Your position: {position} farmer
+            - You are in a strategic interaction where your choice affects both your payoff and the other farmer's payoff
+
+            {payoff_matrix}
+
+            Game Theory Context:
+            This is a  interaction. First, You must choose between:
+            - L (Low): Conservative strategy, potentially better for cooperation
+            - H (High): Aggressive strategy, potentially better for competition
+
+            Then based on your strategy, specify the exact number of fields (0-10) you want to irrigate.
+
+            Your task: Specify the exact number of fields (0-10) you want to irrigate.
+            """
+
+        try:
+            response = client.chat.completions.create(
+                model="Qwen/QwQ-32B",
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "You are a farmer who prioritizes sustaining your household while preserving the long-term viability of the shared resource. Make decisions placing value on your immediate livelihood and the fairness of access for others. Answer only in JSON format."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.3,
+                response_format={
+                    "type": "json_schema",
+                    "schema": GameDecision.model_json_schema(),
+                }
+            )
+            
+            output = json.loads(response.choices[0].message.content)
+            strategy = output.get("strategy_choice", "L")
+            fields = output.get("fields_to_irrigate", 6)
+            reasoning = output.get("reasoning", "No reasoning provided")
+            
+            # Ensure within valid bounds and align with strategy
+            fields = max(0, min(fields, 10))
+            
+            # Optional: print decision for debugging
+            print(f"Farmer {farmer.location} ({position}): Strategy {strategy}, {fields} fields - {reasoning}")
+            
+            return fields
+            
+        except Exception as e:
+            print(f"LLM call failed for farmer {farmer.location}: {e}")
+            return np.random.choice([6, 10])  # Fallback to random L or H
+    
+    def _get_farmer_decision_openai(self, farmer, other_farmer, fish_income, total_water, payoff_matrix, position):
+        """Use OpenAI for game theory decision"""
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("OPENAI_API_KEY not found, falling back to random choice.")
+            return np.random.choice([6, 10])  # Random L or H choice
+            
+        client = OpenAI(api_key=api_key)
+        
+        prompt = f"""You are Farmer {farmer.location} making an irrigation decision in a strategic game with Farmer {other_farmer.location}.
+
+                Context:
+                - Your current budget: {farmer.budget:.2f}
+                - Other farmer's budget: {other_farmer.budget:.2f}
+                - Your fish income: {fish_income:.2f}
+                - Total water available: {total_water:.2f}
+                - Your position: {position} farmer
+                - You are in a strategic interaction where your choice affects both your payoff and the other farmer's payoff
+
+                {payoff_matrix}
+
+                Game Theory Context:
+                This is a classic strategic interaction. You must choose between:
+                - L (Low): Conservative strategy, irrigate 6 fields, potentially better for cooperation
+                - H (High): Aggressive strategy, irrigate 10 fields, potentially better for competition
+
+                Consider:
+                1. What strategy maximizes your expected payoff?
+                2. What might the other farmer choose?
+                3. Should you cooperate (both choose L) or compete (choose H)?
+
+                Your task: Choose either L or H strategy, and specify the exact number of fields (0-10) you want to irrigate.
+                """
+
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a farmer making strategic irrigation decisions in a game theory context. Consider both cooperation and competition. Answer only in JSON format."
+                    },
+                    {
+                        "role": "user", 
+                        "content": prompt
+                    }
+                ],
+                temperature=0.3,
+                response_format={"type": "json_object"}
+            )
+            
+            output = json.loads(response.choices[0].message.content)
+            strategy = output.get("strategy_choice", "L")
+            fields = output.get("fields_to_irrigate", 6)
+            reasoning = output.get("reasoning", "No reasoning provided")
+            
+            # Ensure within valid bounds
+            fields = max(0, min(fields, 10))
+            
+            # Optional: print decision for debugging
+            print(f"Farmer {farmer.location} ({position}): Strategy {strategy}, {fields} fields - {reasoning}")
+            
+            return fields
+            
+        except Exception as e:
+            print(f"LLM call failed for farmer {farmer.location}: {e}")
+            return np.random.choice([6, 10])  # Fallback to random L or H
 
     def decentralized_game(self, monthly_inflows):
         remaining_water = sum(monthly_inflows)
@@ -167,12 +442,10 @@ class Simulation:
             df_fish_income = FISH_INCOME_SCALE * (np.mean(df.catch_history[-3:]) if len(df.catch_history) >= 3 else (df.catch_history[-1] if df.catch_history else 0))
 
             if self.use_static_game:
-                payoffs = [
-                    [(6, 6), (5, 7)],
-                    [(9, 3), (5, 2)]
-                ]
-                matrix_size = 2
-                strategy_values = [6, 10]
+                # LLM-based game theory decision
+                uf_choice, df_choice = self._make_llm_game_decisions(uf, df, uf_fish_income, df_fish_income, total_water_for_this_game)
+                uf.possible_choices.append(uf_choice)
+                df.possible_choices.append(df_choice)
             else:
                 payoffs = generate_dv_matrix(
                     n=10,
@@ -187,34 +460,34 @@ class Simulation:
                     uf_budget=uf.budget,
                     df_budget=df.budget,
                     uf_fish_income=uf_fish_income,
-                    df_fish_income=df_fish_income
+                    df_fish_income=df_fish_income,
+                    simulate_tragedy=self.simulate_tragedy
                 )
                 matrix_size = 10
                 strategy_values = list(range(1, matrix_size + 1))
 
-            equilibria = solve_game(payoffs, player_labels=("UF", "DF"))
+                equilibria = solve_game(payoffs, player_labels=("UF", "DF"))
 
-            if equilibria:
-                eq = np.random.choice(equilibria)
+                if equilibria:
+                    eq = np.random.choice(equilibria)
 
-                if uf.budget > 0:
-                    uf_choice = np.random.choice(strategy_values, p=eq["UF"])
-                    uf.possible_choices.append(uf_choice)
+                    if uf.budget > 0:
+                        uf_choice = np.random.choice(strategy_values, p=eq["UF"])
+                        uf.possible_choices.append(uf_choice)
 
-                if df.budget > 0:
-                    df_choice = np.random.choice(strategy_values, p=eq["DF"])
-                    df.possible_choices.append(df_choice)
+                    if df.budget > 0:
+                        df_choice = np.random.choice(strategy_values, p=eq["DF"])
+                        df.possible_choices.append(df_choice)
 
-                uf_water_used = uf_choice * WATER_PER_FIELD * 12
-                remaining_water = max(0, remaining_water - uf_water_used)
+            uf_water_used = uf_choice * WATER_PER_FIELD * 12
+            remaining_water = max(0, remaining_water - uf_water_used)
 
         for farmer in self.farmers:
             if len(farmer.possible_choices) == 1:
                 farmer.irrigated_fields = farmer.possible_choices[0]
-            elif len(farmer.possible_choices) == 2:
-                farmer.irrigated_fields = np.random.choice(farmer.possible_choices)
             else:
-                raise ValueError(f"Farmer {farmer.location} has unexpected number of choices: {len(farmer.possible_choices)}")
+                farmer.irrigated_fields = np.random.choice(farmer.possible_choices)
+            
 
     def run(self):
         for year in range(self.years):
@@ -236,7 +509,7 @@ class Simulation:
                 farmer.possible_choices = []
             
             if not self.centralized: # Decentralized
-                if self.use_cpr_game: # Game logic
+                if self.use_cpr_game or self.use_static_game: # Game logic
                     self.decentralized_game(monthly_inflows)
                 else: # Heuristic logic
                     for farmer in self.farmers:
@@ -244,11 +517,8 @@ class Simulation:
                         if not self.generative_agent:
                             farmer.decide_irrigation()
                         else:
-                            if np.random.random() < 0.5: # 10% chance to use generative agent
-                                farmer.decide_irrigation_generative_agent(provider=self.llm_provider)
-                            else:
-                                farmer.decide_irrigation()
-
+                            farmer.decide_irrigation_generative_agent(provider=self.llm_provider)
+                            
             if year % self.print_interval == 0:
                 # self.use_cpr_game == False and self.use_static_game == False and self.centralized == True:
                 print(f"\nYear {year + 1} | Total Inflow: {sum(monthly_inflows):.2f}")

@@ -1,0 +1,210 @@
+# STRATEGIC IRRIGATION GAME SCENARIOS
+# Generated: 2025-09-29 17:40:11
+# Source: DeepSeek-V3 Structured Response (Pure Pydantic)
+# Status: VALIDATED_PYDANTIC_MATRICES
+
+# Full Game Scenarios (JSON format):
+ALL_SCENARIOS = {
+  "action_situations": [
+    {
+      "title": "Water Allocation Planning (Centralized)",
+      "description": "The national authority decides the number of fields each farmer can irrigate based on predicted water flows and budget constraints.",
+      "location": "National authority office",
+      "players": [
+        "National authority",
+        "Farmers"
+      ],
+      "roles": [
+        "Allocator (National authority)",
+        "Irrigator (Farmers)"
+      ],
+      "actions": {
+        "player1": [
+          "Allocate equal fields to all farmers",
+          "Reduce fields due to budget constraints"
+        ],
+        "player2": [
+          "Calculate water demand based on allocated fields"
+        ]
+      },
+      "control_rules": "The national authority calculates total water demand and adjusts the number of irrigated fields equally for all farmers if the budget is insufficient.",
+      "information": "National authority has complete information on total water inflow predictions and budget; farmers know their allocated fields and water demand.",
+      "outcomes": "Number of irrigated fields per farmer, total water demand.",
+      "payoffs": "Farmers' yields depend on water availability; national authority's budget is affected by total irrigation costs.",
+      "strategic_tension": "Non-strategic; the national authority unilaterally decides, and farmers follow.",
+      "temporal_structure": "Annual decision at the beginning of the season.",
+      "relevant_rules": "Boundary: National authority and farmers. Position: Allocator and irrigator. Choice: National authority decides fields; farmers calculate demand. Control: Authority adjusts fields based on budget.",
+      "payoff_matrix": {
+        "action1_action1": [
+          5.0,
+          5.0
+        ],
+        "action1_action2": [
+          3.0,
+          3.0
+        ],
+        "action2_action1": [
+          4.0,
+          4.0
+        ],
+        "action2_action2": [
+          2.0,
+          2.0
+        ]
+      },
+      "strategic_core": "Non-strategic",
+      "rationale": "The national authority makes a unilateral decision based on total water and budget, with no strategic interaction between players."
+    },
+    {
+      "title": "Water Allocation Planning (Decentralized)",
+      "description": "Each farmer independently decides the number of fields to irrigate based on local water predictions and personal budget.",
+      "location": "Individual farms along the river",
+      "players": [
+        "Upstream farmer",
+        "Downstream farmer"
+      ],
+      "roles": [
+        "Irrigator"
+      ],
+      "actions": {
+        "player1": [
+          "Increase fields",
+          "Maintain fields",
+          "Decrease fields"
+        ],
+        "player2": [
+          "Increase fields",
+          "Maintain fields",
+          "Decrease fields"
+        ]
+      },
+      "control_rules": "Farmers adjust fields based on past income, water predictions, and budget. Water flows sequentially from upstream to downstream.",
+      "information": "Farmers have partial, noisy information on past water flows at their location; no knowledge of others' actions.",
+      "outcomes": "Individual yields, downstream water availability.",
+      "payoffs": "Upstream farmer's actions affect downstream water availability; both farmers' yields depend on water received.",
+      "strategic_tension": "Strategic; asymmetric impact of upstream actions on downstream water availability. Model as an asymmetric coordination game.",
+      "temporal_structure": "Annual decision at the beginning of the season.",
+      "relevant_rules": "Boundary: Upstream and downstream farmers. Position: Irrigator. Choice: Adjust fields based on local conditions. Control: Sequential water flow affects outcomes.",
+      "payoff_matrix": {
+        "action1_action1": [
+          4.0,
+          2.0
+        ],
+        "action1_action2": [
+          5.0,
+          1.0
+        ],
+        "action2_action1": [
+          3.0,
+          3.0
+        ],
+        "action2_action2": [
+          4.0,
+          2.0
+        ]
+      },
+      "strategic_core": "Asymmetric coordination",
+      "rationale": "Upstream farmer's choice of fields directly impacts water available downstream, creating a tension between individual benefit and collective resource availability."
+    },
+    {
+      "title": "Fishing Access",
+      "description": "Farmers access the fishing lake in order of their distance from the lake, with downstream farmers fishing first.",
+      "location": "Fishing lake at the river end",
+      "players": [
+        "Downstream farmer",
+        "Upstream farmer"
+      ],
+      "roles": [
+        "Fisher"
+      ],
+      "actions": {
+        "player1": [
+          "Fish first",
+          "Wait"
+        ],
+        "player2": [
+          "Fish second",
+          "Wait"
+        ]
+      },
+      "control_rules": "Downstream farmers access the lake first; fish are caught randomly from adult age classes.",
+      "information": "Farmers know their order of access but not the exact fish population.",
+      "outcomes": "Individual fish catch, fish population impact.",
+      "payoffs": "Downstream farmers have first access to fish; upstream farmers may find fewer fish available.",
+      "strategic_tension": "Strategic; sequential access creates a first-mover advantage. Model as a sequential game.",
+      "temporal_structure": "Annual activity at the end of the season.",
+      "relevant_rules": "Boundary: Downstream and upstream farmers. Position: Fisher. Choice: When to fish. Control: Sequential access based on location.",
+      "payoff_matrix": {
+        "action1_action1": [
+          3.0,
+          1.0
+        ],
+        "action1_action2": [
+          4.0,
+          0.0
+        ],
+        "action2_action1": [
+          2.0,
+          2.0
+        ],
+        "action2_action2": [
+          3.0,
+          1.0
+        ]
+      },
+      "strategic_core": "Sequential access",
+      "rationale": "Downstream farmers benefit from fishing first, potentially depleting resources for upstream farmers, creating a tension over resource access order."
+    },
+    {
+      "title": "Irrigation Water Use",
+      "description": "Farmers irrigate monthly, with water stress affecting yields based on water received versus demand.",
+      "location": "Individual farms along the river",
+      "players": [
+        "Upstream farmer",
+        "Downstream farmer"
+      ],
+      "roles": [
+        "Irrigator"
+      ],
+      "actions": {
+        "player1": [
+          "Full irrigation",
+          "Partial irrigation"
+        ],
+        "player2": [
+          "Full irrigation",
+          "Partial irrigation"
+        ]
+      },
+      "control_rules": "Water flows sequentially; upstream irrigation reduces downstream availability. Yields depend on cumulative water stress.",
+      "information": "Farmers know their own water demand but not others' usage.",
+      "outcomes": "Individual yields, downstream water scarcity.",
+      "payoffs": "Upstream overuse reduces downstream yields; both may face lower yields if water is overall scarce.",
+      "strategic_tension": "Strategic; upstream actions can harm downstream. Model as a tragedy of the commons.",
+      "temporal_structure": "Monthly during the irrigation season.",
+      "relevant_rules": "Boundary: Upstream and downstream farmers. Position: Irrigator. Choice: Irrigation intensity. Control: Sequential water flow and stress impacts yields.",
+      "payoff_matrix": {
+        "action1_action1": [
+          2.0,
+          2.0
+        ],
+        "action1_action2": [
+          3.0,
+          1.0
+        ],
+        "action2_action1": [
+          1.0,
+          3.0
+        ],
+        "action2_action2": [
+          2.0,
+          2.0
+        ]
+      },
+      "strategic_core": "Tragedy of the commons",
+      "rationale": "Upstream farmers have an incentive to over-irrigate, harming downstream users, leading to potential collective overuse and reduced overall yields."
+    }
+  ]
+}
+
+# Matrix Type: Comprehensive Action Situations with Pydantic Structure

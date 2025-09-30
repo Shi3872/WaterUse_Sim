@@ -50,6 +50,7 @@ class SimulationConfig:
         params = {
             # Simulation setup
             'years': self.config['simulation']['years'],
+            'number_of_runs': self.config['simulation'].get('number_of_runs', 1),
             'print_interval': self.config['simulation']['print_interval'],
             'num_farmers': self.config['simulation']['num_farmers'],
             
@@ -63,6 +64,10 @@ class SimulationConfig:
             # Game theory
             'use_cpr_game': self.config['games']['use_cpr_game'],
             'use_static_game': self.config['games']['use_static_game'],
+            'simulate_tragedy': self.config['games']['simulate_tragedy'],
+            
+            # Fish configuration
+            'fishing_cpr': self.config['fish']['fishing_cpr'],
             
             # LLM integration
             'generative_agent': self.config['llm']['generative_agent'],

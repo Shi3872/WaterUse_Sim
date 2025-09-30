@@ -29,7 +29,7 @@ def cv_irrigation(total_fields, water_field, total_water, yield_field, cost_per_
 
 def dv_irrigation(uf_fields, df_fields, water_field, total_water, yield_field, cost_per_field,
                   consumption_cost, stress_threshold, stressed_yield,
-                  uf_budget, df_budget, uf_fish_income, df_fish_income):
+                  uf_budget, df_budget, uf_fish_income, df_fish_income, simulate_tragedy=True):
     
     WATER_PER_FIELD_YEARLY = water_field * 12
     congestion_factor, linear_scaling_factor = 0.25, 30
@@ -59,8 +59,12 @@ def dv_irrigation(uf_fields, df_fields, water_field, total_water, yield_field, c
     def sigmoid(x):
         return 1 / (1 + math.exp(-x))
     
-    uf_payoff = sigmoid(uf_yield - uf_cost)*linear_scaling_factor - congestion_factor*(uf_fields + df_fields)*uf_fields
-    df_payoff = sigmoid(df_yield - df_cost)*linear_scaling_factor - congestion_factor*(uf_fields + df_fields)*df_fields
+    if not simulate_tragedy:
+        uf_payoff = sigmoid(uf_yield - uf_cost)*linear_scaling_factor - congestion_factor*(uf_fields + df_fields)*uf_fields
+        df_payoff = sigmoid(df_yield - df_cost)*linear_scaling_factor - congestion_factor*(uf_fields + df_fields)*df_fields
+    else:
+        uf_payoff = sigmoid(uf_yield - uf_cost)*linear_scaling_factor
+        df_payoff = sigmoid(df_yield - df_cost)*linear_scaling_factor
 
     return (uf_payoff, df_payoff)
 
@@ -165,7 +169,7 @@ def generate_cv_matrix(n, m, water_field, total_water, yield_field, cost_per_fie
 
 def generate_dv_matrix(n, m, water_field, total_water, yield_field, cost_per_field,
                     consumption_cost, stress_threshold, stressed_yield,
-                    uf_budget, df_budget, uf_fish_income, df_fish_income):
+                    uf_budget, df_budget, uf_fish_income, df_fish_income, simulate_tragedy=True):
     matrix = []
     for uf in range(m, m + n): # UF strategies: m, m+1...
         row = []
@@ -174,7 +178,7 @@ def generate_dv_matrix(n, m, water_field, total_water, yield_field, cost_per_fie
                 uf, df,
                 water_field, total_water, yield_field, cost_per_field,
                 consumption_cost, stress_threshold, stressed_yield,
-                uf_budget, df_budget, uf_fish_income, df_fish_income
+                uf_budget, df_budget, uf_fish_income, df_fish_income, simulate_tragedy
             ))
         matrix.append(row)
     return matrix

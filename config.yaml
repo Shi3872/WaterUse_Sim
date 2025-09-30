@@ -4,6 +4,7 @@
 # Simulation Setup
 simulation:
   years: 100                    # Number of years to simulate
+  number_of_runs: 5            # Number of simulation runs for confidence intervals
   print_interval: 1            # Print output every N years
   num_farmers: 9               # Number of farmers in the simulation
   
@@ -45,12 +46,13 @@ system:
 games:
   use_cpr_game: false          # Use Common Pool Resource game logic
   use_static_game: false       # Use static 2x2 game matrix
+  simulate_tragedy: true       # Enable tragedy of the commons simulation
   
 # LLM Integration
 llm:
   generative_agent: false      # Use LLM for farmer decisions
   provider: "together"         # LLM provider ("together" or "openai")
-  model_together: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+  model_together: "Qwen/QwQ-32B"
   model_openai: "gpt-4o-mini"
   temperature: 0.7             # Creativity/randomness of LLM responses
   max_tokens: 100              # Maximum tokens per LLM response
@@ -71,13 +73,15 @@ output:
 scenarios:
   # Multiple scenarios can be defined here for batch runs
   default:
-    centralized: true
+    centralized: false
     fishing_enabled: true
     memory_strength: 1
     generative_agent: false
-    use_cpr_game: false
+    use_cpr_game: false        # Changed: cannot be true with use_static_game=true
     fishing_cpr: false
     inflow_case: "4"
+    number_of_runs: 1  # Increased runs for better statistics
+    use_static_game: true      # This is the main feature for default scenario
     
   centralized_fishing:
     centralized: true

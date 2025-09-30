@@ -122,7 +122,8 @@ class Farmer:
         
         # Create the prompt
         prompt = f"""You are a farmer agent deciding how many fields to irrigate this season.
-                                Your decision affects not only your own harvest but also the availability of water for farmers located downstream along the river. The more water you use, the less water remains for others.
+                                Your decision affects not only your own harvest but also the availability of water for farmers located downstream along the river. The more water you use, the less water remains for others and the lake downstream.
+                                The lake has fishes, which provide additional income based on water availability in the lake.
 
                                 Context:
 
@@ -142,6 +143,7 @@ class Farmer:
 
                                 Reminder:
                                 Water is a common-pool resource. If you irrigate more fields, you increase your own potential yield but reduce water availability for downstream farmers.
+                                
 
                                 Question:
                                 Given this information, how many fields do you want to irrigate this season? Provide your decision and reasoning."""
@@ -153,7 +155,7 @@ class Farmer:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a rational farmer making irrigation decisions. Consider both your own economic needs and the water needs of downstream farmers. Only answer in JSON format."
+                        "content": "You are a farmer making irrigation decisions. Consider both your own economic needs and the water needs of downstream farmers. Only answer in JSON format."
                     },
                     {
                         "role": "user",

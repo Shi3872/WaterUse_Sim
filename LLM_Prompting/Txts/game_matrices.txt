@@ -1,0 +1,212 @@
+# STRATEGIC IRRIGATION GAME SCENARIOS
+# Generated: 2025-09-30 11:31:03
+# Source: DeepSeek-V3 Structured Response (Pure Pydantic)
+# Status: VALIDATED_PYDANTIC_MATRICES
+
+# Full Game Scenarios (JSON format):
+ALL_SCENARIOS = {
+  "action_situations": [
+    {
+      "title": "Water Allocation Planning - Centralized",
+      "description": "The national authority decides on the number of irrigated fields for all farmers based on predicted water flows and budget constraints.",
+      "location": "Regulatory office",
+      "players": [
+        "National authority",
+        "Farmers"
+      ],
+      "roles": [
+        "Allocator (National authority)",
+        "Irrigator (Farmers)"
+      ],
+      "actions": {
+        "player1": [
+          "Allocate equal water",
+          "Allocate based on budget"
+        ],
+        "player2": [
+          "Comply",
+          "Non-comply"
+        ]
+      },
+      "control_rules": "The national authority allocates water equally or based on budget. Farmers must comply with the allocation.",
+      "information": "National authority has complete information on total water availability and budget. Farmers know their allocated water share.",
+      "outcomes": "Water is distributed equally or based on budget constraints.",
+      "payoffs": "Farmers receive water for irrigation; national authority manages resource sustainability.",
+      "strategic_tension": "Strategic, Coordination Game. Tension arises from balancing equal distribution versus budget constraints.",
+      "temporal_structure": "Repeated annually",
+      "relevant_rules": "Boundary rules define who can irrigate. Choice rules specify allocation methods. Control rules enforce compliance.",
+      "payoff_matrix": {
+        "action1_action1": [
+          50.0,
+          50.0
+        ],
+        "action1_action2": [
+          30.0,
+          70.0
+        ],
+        "action2_action1": [
+          70.0,
+          30.0
+        ],
+        "action2_action2": [
+          40.0,
+          40.0
+        ]
+      },
+      "strategic_core": "Coordination game where the national authority and farmers must align on water distribution.",
+      "rationale": "Equal allocation ensures fairness but may not be optimal for all farmers. Budget-based allocation can be more efficient but may lead to disparities."
+    },
+    {
+      "title": "Water Allocation Planning - Decentralized",
+      "description": "Each farmer independently decides the number of fields to irrigate based on local water flow predictions and budget.",
+      "location": "Individual farms along the river",
+      "players": [
+        "Upstream farmer",
+        "Downstream farmer"
+      ],
+      "roles": [
+        "Irrigator (Upstream)",
+        "Irrigator (Downstream)"
+      ],
+      "actions": {
+        "player1": [
+          "Increase irrigation",
+          "Maintain irrigation"
+        ],
+        "player2": [
+          "Increase irrigation",
+          "Maintain irrigation"
+        ]
+      },
+      "control_rules": "Farmers decide based on their income threshold and water predictions. Water flows downstream after use.",
+      "information": "Farmers have partial information on water flows at their location. No knowledge of others' actions.",
+      "outcomes": "Upstream actions affect downstream water availability. Potential overuse or underuse of water.",
+      "payoffs": "Yield depends on water availability. Downstream farmers are more vulnerable to upstream decisions.",
+      "strategic_tension": "Strategic, Common Pool Resource Game. Tension arises from upstream-downstream water use asymmetry.",
+      "temporal_structure": "Repeated annually",
+      "relevant_rules": "Boundary rules define farm locations. Choice rules allow independent irrigation decisions. Control rules govern water flow.",
+      "payoff_matrix": {
+        "action1_action1": [
+          60.0,
+          40.0
+        ],
+        "action1_action2": [
+          80.0,
+          20.0
+        ],
+        "action2_action1": [
+          40.0,
+          60.0
+        ],
+        "action2_action2": [
+          50.0,
+          50.0
+        ]
+      },
+      "strategic_core": "Common pool resource dilemma where upstream farmers' actions disproportionately affect downstream farmers.",
+      "rationale": "Upstream farmers can secure more water, leaving less for downstream, creating a tragedy of the commons scenario."
+    },
+    {
+      "title": "Fishing Access",
+      "description": "Farmers access the fishing lake based on their proximity to it, with downstream farmers having first access.",
+      "location": "Fishing lake at the river end",
+      "players": [
+        "Downstream farmer",
+        "Upstream farmer"
+      ],
+      "roles": [
+        "Fisher (Downstream)",
+        "Fisher (Upstream)"
+      ],
+      "actions": {
+        "player1": [
+          "Fish aggressively",
+          "Fish moderately"
+        ],
+        "player2": [
+          "Fish aggressively",
+          "Fish moderately"
+        ]
+      },
+      "control_rules": "Downstream farmers fish first. Fish are caught randomly from adult age classes.",
+      "information": "Farmers know their catch history but not the fish population status.",
+      "outcomes": "Fish population may decline if overfished. Downstream farmers have better access.",
+      "payoffs": "Catch levels affect income. Overfishing reduces future catches.",
+      "strategic_tension": "Strategic, Fishery Game. Tension arises from sequential access and sustainable harvest.",
+      "temporal_structure": "Repeated annually",
+      "relevant_rules": "Boundary rules define fishing order. Choice rules set fishing intensity. Control rules manage fish population.",
+      "payoff_matrix": {
+        "action1_action1": [
+          30.0,
+          30.0
+        ],
+        "action1_action2": [
+          50.0,
+          20.0
+        ],
+        "action2_action1": [
+          20.0,
+          50.0
+        ],
+        "action2_action2": [
+          40.0,
+          40.0
+        ]
+      },
+      "strategic_core": "Sequential access game where downstream farmers can deplete resources before upstream farmers can act.",
+      "rationale": "Aggressive fishing by downstream farmers can lead to resource depletion, while moderate fishing ensures sustainability."
+    },
+    {
+      "title": "Budget Calculation - Decentralized",
+      "description": "Each farmer calculates their budget based on agricultural returns and fishing income, minus costs.",
+      "location": "Individual farms",
+      "players": [
+        "Farmer",
+        "Environment"
+      ],
+      "roles": [
+        "Budget manager",
+        "Resource provider"
+      ],
+      "actions": {
+        "player1": [
+          "Invest in irrigation",
+          "Save budget"
+        ],
+        "player2": [
+          "Favorable conditions",
+          "Unfavorable conditions"
+        ]
+      },
+      "control_rules": "Farmers decide based on past yields and budget. Environmental conditions are stochastic.",
+      "information": "Farmers know their past returns and costs. Environmental conditions are unpredictable.",
+      "outcomes": "Budget increases or decreases based on investment success and environmental factors.",
+      "payoffs": "Higher investment risks higher returns or losses. Saving is safer but yields less.",
+      "strategic_tension": "Non-strategic, as the environment does not make decisions.",
+      "temporal_structure": "Repeated annually",
+      "relevant_rules": "Choice rules allow investment or saving. Control rules link investment to returns.",
+      "payoff_matrix": {
+        "action1_action1": [
+          80.0,
+          0.0
+        ],
+        "action1_action2": [
+          40.0,
+          0.0
+        ],
+        "action2_action1": [
+          60.0,
+          0.0
+        ],
+        "action2_action2": [
+          50.0,
+          0.0
+        ]
+      },
+      "strategic_core": "Decision under uncertainty, not a strategic game.",
+      "rationale": "Farmers face trade-offs between risk and return, but the environment does not strategize."
+    }
+  ]
+}
+
+# Matrix Type: Comprehensive Action Situations with Pydantic Structure

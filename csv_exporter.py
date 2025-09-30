@@ -286,3 +286,93 @@ class SimulationCSVExporter:
         
         results['metadata'] = metadata_path
         return results
+
+    def export_multiple_runs_data(self, all_simulations: List, all_farmer_budgets: List, scenario_name: str = "default", config_params: Dict = None) -> Dict[str, str]:
+        """
+        Export data from multiple simulation runs
+        
+        Args:
+            all_simulations: List of simulation objects from all runs
+            all_farmer_budgets: List of budget histories from all runs for CI calculation
+            scenario_name: Name of the scenario
+            config_params: Configuration parameters used for the simulation
+            
+        Returns:
+            Dictionary mapping data type to file path
+        """
+        if not self.session_dir:
+            self.create_session_directory(scenario_name)
+        
+        # Export budget data across all runs for confidence intervals
+        self.export_multi_run_farmer_budgets(all_farmer_budgets, scenario_name)
+        
+        # Use the last simulation for other data (backward compatibility)
+        last_sim = all_simulations[-1]
+        
+        results = {
+            'farmer_data': self.export_farmer_data(last_sim, scenario_name),
+            'fish_data': self.export_fish_data(last_sim, scenario_name),
+            'water_data': self.export_water_data(last_sim, scenario_name),
+            'summary': self.export_summary_data(last_sim, scenario_name, config_params),
+            'multi_run_budgets': self.export_multi_run_farmer_budgets(all_farmer_budgets, scenario_name)
+        }
+        
+        # Create a metadata file
+        metadata_path = os.path.join(self.session_dir, "metadata.txt")
+        with open(metadata_path, 'w') as f:
+            f.write(f"Multi-Run Simulation Export Metadata\n")
+            f.write(f"====================================\n")
+            f.write(f"Scenario: {scenario_name}\n")
+            f.write(f"Number of Runs: {len(all_simulations)}\n")
+            f.write(f"Export Time: {datetime.now().isoformat()}\n")
+            f.write(f"Session Directory: {self.session_dir}\n")
+            f.write(f"Files Created:\n")
+            for data_type, file_path in results.items():
+                f.write(f"  - {data_type}: {os.path.basename(file_path)}\n")
+            if config_params:
+                f.write(f"\nConfiguration Parameters:\n")
+                for key, value in config_params.items():
+                    f.write(f"  {key}: {value}\n")
+        
+        results['metadata'] = metadata_path
+        return results
+
+    def export_multi_run_farmer_budgets(self, all_farmer_budgets: List, scenario_name: str = "default") -> str:
+        """
+        Export farmer budget data across multiple runs for confidence interval calculation
+        
+        Args:
+            all_farmer_budgets: List of budget histories from all runs
+                Format: [run][farmer][year] = budget
+            scenario_name: Name of the scenario
+            
+        Returns:
+            Path to the saved CSV file
+        """
+        if not self.session_dir:
+            self.create_session_directory(scenario_name)
+            
+        file_path = os.path.join(self.session_dir, f"farmer_budgets_all_runs.csv")
+        
+        # Prepare data for CSV export
+        rows = []
+        
+        for run_idx, run_budgets in enumerate(all_farmer_budgets):
+            for farmer_idx, farmer_budget_history in enumerate(run_budgets):
+                for year, budget in enumerate(farmer_budget_history, 1):
+                    rows.append({
+                        'run': run_idx + 1,
+                        'farmer_id': farmer_idx + 1,
+                        'year': year,
+                        'budget': budget
+                    })
+        
+        # Export to CSV
+        with open(file_path, 'w', newline='') as csvfile:
+            fieldnames = ['run', 'farmer_id', 'year', 'budget']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+            
+        print(f"Multi-run farmer budget data exported to: {file_path}")
+        return file_path
