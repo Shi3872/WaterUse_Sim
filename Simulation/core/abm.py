@@ -1,3 +1,10 @@
+SYSTEM_PROMPT_FARMER = (
+    "You are a purely self-interested player who always seeks to maximize your own gain and ensure that the outcome is as favorable as possible for yourself. \
+          Answer only in JSON format."
+)
+
+TOGETHER_MODEL_STRING = "Qwen/QwQ-32B"
+OPENAI_MODEL_STRING = "gpt-4o-mini"
 import numpy as np
 from Simulation.agents.Farmer import Farmer
 from Simulation.agents.Authority import NationalAuthority
@@ -294,7 +301,6 @@ class Simulation:
             return np.random.choice([6, 10])  # Random L or H choice
             
         client = Together(api_key=api_key)
-        
         prompt = f"""You are Farmer {farmer.location} making an irrigation decision in a strategic setting with Farmer {other_farmer.location}.
 
             Context:
@@ -303,6 +309,7 @@ class Simulation:
             - Your fish income: {fish_income:.2f}
             - Total water available: {total_water:.2f}
             - Your position: {position} farmer
+            - Irrigation cost per field: {IRRIGATION_COST}
             - You are in a strategic interaction where your choice affects both your payoff and the other farmer's payoff
 
             {payoff_matrix}
@@ -312,18 +319,18 @@ class Simulation:
             - L (Low): Conservative strategy, potentially better for cooperation
             - H (High): Aggressive strategy, potentially better for competition
 
-            Then based on your strategy, specify the exact number of fields (0-10) you want to irrigate.
+            Then based on your strategy, specify the exact number of fields between 0 (min) and 10 (max) you want to irrigate.
 
             Your task: Specify the exact number of fields (0-10) you want to irrigate.
             """
 
         try:
             response = client.chat.completions.create(
-                model="Qwen/QwQ-32B",
+                model=TOGETHER_MODEL_STRING,
                 messages=[
                     {
                         "role": "system", 
-                        "content": "You are a farmer who prioritizes sustaining your household while preserving the long-term viability of the shared resource. Make decisions placing value on your immediate livelihood and the fairness of access for others. Answer only in JSON format."
+                        "content": SYSTEM_PROMPT_FARMER
                     },
                     {
                         "role": "user",
@@ -336,20 +343,13 @@ class Simulation:
                     "schema": GameDecision.model_json_schema(),
                 }
             )
-            
             output = json.loads(response.choices[0].message.content)
             strategy = output.get("strategy_choice", "L")
             fields = output.get("fields_to_irrigate", 6)
             reasoning = output.get("reasoning", "No reasoning provided")
-            
-            # Ensure within valid bounds and align with strategy
             fields = max(0, min(fields, 10))
-            
-            # Optional: print decision for debugging
             print(f"Farmer {farmer.location} ({position}): Strategy {strategy}, {fields} fields - {reasoning}")
-            
             return fields
-            
         except Exception as e:
             print(f"LLM call failed for farmer {farmer.location}: {e}")
             return np.random.choice([6, 10])  # Fallback to random L or H
@@ -390,7 +390,7 @@ class Simulation:
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=OPENAI_MODEL_STRING,
                 messages=[
                     {
                         "role": "system",
@@ -404,20 +404,13 @@ class Simulation:
                 temperature=0.3,
                 response_format={"type": "json_object"}
             )
-            
             output = json.loads(response.choices[0].message.content)
             strategy = output.get("strategy_choice", "L")
             fields = output.get("fields_to_irrigate", 6)
             reasoning = output.get("reasoning", "No reasoning provided")
-            
-            # Ensure within valid bounds
             fields = max(0, min(fields, 10))
-            
-            # Optional: print decision for debugging
             print(f"Farmer {farmer.location} ({position}): Strategy {strategy}, {fields} fields - {reasoning}")
-            
             return fields
-            
         except Exception as e:
             print(f"LLM call failed for farmer {farmer.location}: {e}")
             return np.random.choice([6, 10])  # Fallback to random L or H

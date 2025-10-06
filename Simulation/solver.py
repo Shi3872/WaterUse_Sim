@@ -32,7 +32,7 @@ def dv_irrigation(uf_fields, df_fields, water_field, total_water, yield_field, c
                   uf_budget, df_budget, uf_fish_income, df_fish_income, simulate_tragedy=True):
     
     WATER_PER_FIELD_YEARLY = water_field * 12
-    congestion_factor, linear_scaling_factor = 0.25, 30
+    congestion_factor, linear_scaling_factor = 1, 30
 
     # limits
     uf_affordable = min(uf_fields, uf_budget // cost_per_field)
@@ -65,7 +65,7 @@ def dv_irrigation(uf_fields, df_fields, water_field, total_water, yield_field, c
     else:
         uf_payoff = sigmoid(uf_yield - uf_cost)*linear_scaling_factor
         df_payoff = sigmoid(df_yield - df_cost)*linear_scaling_factor
-
+    
     return (uf_payoff, df_payoff)
 
 import math

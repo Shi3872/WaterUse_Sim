@@ -146,16 +146,18 @@ class Farmer:
                                 
 
                                 Question:
-                                Given this information, how many fields do you want to irrigate this season? Provide your decision and reasoning."""
+                                Given this information, how many fields do you want to irrigate this season? Choose between 0 and 10 fields. Provide your decision and reasoning."""
 
         try:
             # Make API call with structured output
             response = client.chat.completions.create(
-                model="Qwen/QwQ-32B",
+                model="deepseek-ai/DeepSeek-R1-0528-tput",
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a farmer making irrigation decisions. Consider both your own economic needs and the water needs of downstream farmers. Only answer in JSON format."
+                        "content": "You are a farmer making irrigation decisions. \
+                            You are a purely self-interested player who always seeks to maximize your own gain and ensure that the outcome is as favorable as possible for yourself. \
+                                Only answer in JSON format."
                     },
                     {
                         "role": "user",
