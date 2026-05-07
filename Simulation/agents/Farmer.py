@@ -1,4 +1,24 @@
 import numpy as np
+from together import Together
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+import json
+from pydantic import BaseModel, Field
+
+# Load environment variables
+load_dotenv()
+
+# Define the schema for irrigation decision
+class IrrigationDecision(BaseModel):
+    fields_to_irrigate: int = Field(
+        description="Number of fields to irrigate this season (integer between 0 and 10)",
+        ge=0,
+        le=10
+    )
+    reasoning: str = Field(
+        description="Brief explanation for the irrigation decision"
+    )
 
 # ---------------------------
 # Parameters
@@ -20,6 +40,7 @@ class Farmer:
         self.memory_strength = memory_strength
         self.yield_history = []
         self.catch_history = []
+        self.irrigated_fields_history = []
         self.budget = FARMER_INITIAL_BUDGET
         self.min_income = min_income
         self.planned_fields = self.irrigated_fields
@@ -65,6 +86,204 @@ class Farmer:
         # Rule 3: Otherwise → full use of constraints
         else:
             self.irrigated_fields = max(max_possible, 0)
+    
+    def decide_irrigation_generative_agent(self, num_farmers=9, provider="openai"):
+        """
+        Use LLM with structured output to decide irrigation based on current context
+        Supports 'together' (Together AI) and 'openai' (OpenAI o4-mini) providers
+        """
+        if provider.lower() == "openai":
+            return self._decide_with_openai(num_farmers)
+        else:  # default to together
+            return self._decide_with_together(num_farmers)
+    
+    def _decide_with_together(self, num_farmers=9):
+        """Use Together AI for irrigation decision"""
+        api_key = os.getenv("TOGETHER_API_KEY")
+        if not api_key:
+            print("TOGETHER_API_KEY not found, falling back to heuristic method.")
+            self.decide_irrigation()
+            return
+            
+        client = Together(api_key=api_key)
+        
+        # Get context information
+        predicted_water = self.predict_water()
+        water_received_last_year = self.july_memory[-1] if self.july_memory else 0
+        max_fields = MAX_FIELDS_DECENTRALIZED
+        print(f"Calling LLM for farmer at location {self.location}) ")
+        # Determine relative position
+        if self.location == 0:
+            relative_position = "You are the most upstream farmer"
+        elif self.location == num_farmers - 1:
+            relative_position = "You are the most downstream farmer"
+        else:
+            relative_position = f"You have {num_farmers - self.location - 1} farmers downstream from you"
+        
+        # Create the prompt
+        prompt = f"""You are a farmer agent deciding how many fields to irrigate this season.
+                                Your decision affects not only your own harvest but also the availability of water for farmers located downstream along the river. The more water you use, the less water remains for others and the lake downstream.
+                                The lake has fishes, which provide additional income based on water availability in the lake.
+
+                                Context:
+
+                                Your location along the river: {self.location}
+
+                                Current budget: {self.budget:.2f}
+
+                                Maximum number of fields possible: {max_fields}
+
+                                Predicted water availability at your location: {predicted_water:.2f}
+
+                                Observed water received last year: {water_received_last_year:.2f}
+
+                                Total number of farmers along the river: {num_farmers}
+
+                                Your position relative to downstream farmers: {relative_position}
+
+                                Reminder:
+                                Water is a common-pool resource. If you irrigate more fields, you increase your own potential yield but reduce water availability for downstream farmers.
+                                
+
+                                Question:
+                                Given this information, how many fields do you want to irrigate this season? Choose between 0 and 10 fields. Provide your decision and reasoning."""
+
+        try:
+            # Make API call with structured output
+            response = client.chat.completions.create(
+                model="deepseek-ai/DeepSeek-R1-0528-tput",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a farmer making irrigation decisions. \
+                            You are a purely self-interested player who always seeks to maximize your own gain and ensure that the outcome is as favorable as possible for yourself. \
+                                Only answer in JSON format."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.3,
+                response_format={
+                    "type": "json_schema",
+                    "schema": IrrigationDecision.model_json_schema(),
+                }
+            )
+            
+            # Parse the structured response
+            output = json.loads(response.choices[0].message.content)
+            fields_to_irrigate = output.get("fields_to_irrigate", 0)
+            reasoning = output.get("reasoning", "No reasoning provided")
+            
+            # Ensure within valid bounds
+            fields_to_irrigate = max(0, min(fields_to_irrigate, max_fields))
+            self.irrigated_fields = fields_to_irrigate
+            
+            # Optional: print reasoning for debugging
+            # print(f"Farmer {self.location}: {fields_to_irrigate} fields - {reasoning}")
+                
+        except Exception as e:
+            # If API call fails, fallback to heuristic method
+            print(f"LLM call failed for farmer {self.location}: {e}")
+            self.decide_irrigation()
+
+    def _decide_with_openai(self, num_farmers=9):
+        """Use OpenAI o4-mini for irrigation decision"""
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            print("OPENAI_API_KEY not found, falling back to heuristic method.")
+            self.decide_irrigation()
+            return
+            
+        client = OpenAI(api_key=api_key)
+        
+        # Get context information
+        predicted_water = self.predict_water()
+        water_received_last_year = self.july_memory[-1] if self.july_memory else 0
+        max_fields = MAX_FIELDS_DECENTRALIZED
+        print(f"Calling OpenAI o4-mini for farmer at location {self.location}")
+        
+        # Determine relative position
+        if self.location == 0:
+            relative_position = "You are the most upstream farmer"
+        elif self.location == num_farmers - 1:
+            relative_position = "You are the most downstream farmer"
+        else:
+            relative_position = f"You have {num_farmers - self.location - 1} farmers downstream from you"
+        
+        # Create the prompt for OpenAI o4-mini
+        prompt = f"""You are a farmer agent deciding how many fields to irrigate this season.
+                    Your decision affects not only your own harvest but also the availability of water for farmers located downstream along the river. The more water you use, the less water remains for others.
+
+                    Context:
+
+                    Your location along the river: {self.location}
+
+                    Current budget: {self.budget:.2f}
+
+                    Maximum number of fields possible: {max_fields}
+
+                    Predicted water availability at your location: {predicted_water:.2f}
+
+                    Observed water received last year: {water_received_last_year:.2f}
+
+                    Total number of farmers along the river: {num_farmers}
+
+                    Your position relative to downstream farmers: {relative_position}
+
+                    Reminder:
+                    Water is a common-pool resource. If you irrigate more fields, you increase your own potential yield but reduce water availability for downstream farmers.
+
+                    Question:
+                    Given this information, how many fields do you want to irrigate this season? Please respond with a JSON object containing "fields_to_irrigate" (integer 0-10) and "reasoning" (string explanation)."""
+
+        try:
+            # Make API call to OpenAI o4-mini
+            response = client.responses.create(
+                model="o4-mini-2025-04-16",
+                input=prompt
+            )
+            
+            # Parse the response - o4-mini returns text that we need to parse as JSON
+            response_text = response.output_text.strip()
+            
+            # Try to extract JSON from the response
+            try:
+                # Look for JSON-like content in the response
+                if "{" in response_text and "}" in response_text:
+                    json_start = response_text.find("{")
+                    json_end = response_text.rfind("}") + 1
+                    json_str = response_text[json_start:json_end]
+                    output = json.loads(json_str)
+                    
+                    fields_to_irrigate = output.get("fields_to_irrigate", 0)
+                    reasoning = output.get("reasoning", "No reasoning provided")
+                else:
+                    # If no JSON found, try to extract number from text
+                    import re
+                    numbers = re.findall(r'\b(\d+)\b', response_text)
+                    fields_to_irrigate = int(numbers[0]) if numbers else 5  # default to 5
+                    reasoning = "Extracted from text response"
+                    
+            except (json.JSONDecodeError, ValueError):
+                # If JSON parsing fails, extract number from text or use default
+                import re
+                numbers = re.findall(r'\b(\d+)\b', response_text)
+                fields_to_irrigate = int(numbers[0]) if numbers else 5
+                reasoning = "Fallback parsing from text"
+            
+            # Ensure within valid bounds
+            fields_to_irrigate = max(0, min(fields_to_irrigate, max_fields))
+            self.irrigated_fields = fields_to_irrigate
+            
+            # Optional: print reasoning for debugging
+            # print(f"Farmer {self.location}: {fields_to_irrigate} fields - {reasoning}")
+                
+        except Exception as e:
+            # If API call fails, fallback to heuristic method
+            print(f"OpenAI call failed for farmer {self.location}: {e}")
+            self.decide_irrigation()
 
     def irrigate(self, available_water): # return received water per month     
         self.planned_fields = self.irrigated_fields  # store for stress calc
@@ -93,6 +312,8 @@ class Farmer:
 
         if centralized: # Farmers keep ONLY fishing income
             net_return = fish_catch * FISH_INCOME_SCALE # net return per farmer
+            income = field_yield + fish_catch * FISH_INCOME_SCALE
+            net_return = income - (self.irrigated_fields * IRRIGATION_COST) - CONSUMPTION_COST
             authority_yield = field_yield
             authority_irrigation_cost = self.irrigated_fields * IRRIGATION_COST
             authority_consumption_cost = CONSUMPTION_COST
@@ -106,6 +327,7 @@ class Farmer:
         self.budget += net_return
         self.yield_history.append(field_yield) # total yield (not per field)
         self.catch_history.append(fish_catch)
+        self.irrigated_fields_history.append(self.irrigated_fields)
 
         # Update water satisfaction memory (average over the season)
         total_demand = self.irrigated_fields * 12
